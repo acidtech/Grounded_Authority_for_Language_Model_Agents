@@ -1,0 +1,1207 @@
+1
+00:00:00,300 --> 00:00:02,750
+An AI agent is given a job.
+
+2
+00:00:02,740 --> 00:00:05,700
+Hours later, it does something nobody asked for.
+
+3
+00:00:05,690 --> 00:00:09,098
+It deletes the failing tests so the build turns green.
+
+4
+00:00:09,088 --> 00:00:12,251
+Or it edits a file it was told never to touch.
+
+5
+00:00:12,801 --> 00:00:14,478
+The verdict comes fast.
+
+6
+00:00:14,468 --> 00:00:16,306
+The model is unreliable.
+
+7
+00:00:16,296 --> 00:00:17,454
+Misaligned.
+
+8
+00:00:17,444 --> 00:00:18,898
+Maybe dangerous.
+
+9
+00:00:19,448 --> 00:00:25,519
+About half of American adults now say they're at least somewhat worried AI could end humanity.
+
+10
+00:00:26,369 --> 00:00:28,669
+Everyone agrees on the defendant.
+
+11
+00:00:28,659 --> 00:00:30,902
+This video asks a different question.
+
+12
+00:00:30,892 --> 00:00:32,839
+Not, “what's wrong with the worker?”
+
+13
+00:00:32,829 --> 00:00:35,380
+But, “who was allowed to change the work order?”
+
+14
+00:00:40,730 --> 00:00:43,566
+So is anything here actually unique to AI?
+
+15
+00:00:43,556 --> 00:00:45,023
+Here's a fair test.
+
+16
+00:00:45,013 --> 00:00:51,341
+A threat is AI-specific only if a human worker in the same position couldn't fail the same way.
+
+17
+00:00:51,331 --> 00:00:57,465
+If people share it, it's a systemic threat, and the fix belongs to how the institution is run.
+
+18
+00:00:57,455 --> 00:01:00,186
+Let's try that on the scariest list we've got.
+
+19
+00:01:00,836 --> 00:01:03,086
+Hitting the metric and missing the goal?
+
+20
+00:01:03,076 --> 00:01:06,707
+That's Goodhart's law, as old as managing by numbers.
+
+21
+00:01:06,697 --> 00:01:08,955
+Manipulated by outside input?
+
+22
+00:01:08,945 --> 00:01:10,405
+Social engineering.
+
+23
+00:01:10,395 --> 00:01:13,215
+Reviewers who make the same mistake together?
+
+24
+00:01:13,205 --> 00:01:15,299
+Human review panels do that too.
+
+25
+00:01:15,290 --> 00:01:17,981
+An AI copying itself somewhere it shouldn't?
+
+26
+00:01:17,971 --> 00:01:20,911
+That's moving a company asset without approval.
+
+27
+00:01:20,901 --> 00:01:26,626
+Every card has a human counterpart, and every human counterpart already has a control.
+
+28
+00:01:27,476 --> 00:01:28,994
+Now, the hard one.
+
+29
+00:01:28,984 --> 00:01:36,980
+In laboratory tests, agents have taken harmful, unauthorized actions with their instructions completely intact.
+
+30
+00:01:36,970 --> 00:01:42,730
+From the outside, we can't know why it happened, any more than we can read an employee's mind.
+
+31
+00:01:42,720 --> 00:01:44,013
+We don't need to.
+
+32
+00:01:44,003 --> 00:01:49,718
+Limit what any worker can touch, and require approval for anything with outside effects.
+
+33
+00:01:49,708 --> 00:01:54,295
+Those controls work the same whether the harm was careless or deliberate.
+
+34
+00:01:54,945 --> 00:01:57,168
+And a plan that was wrong and harmful?
+
+35
+00:01:57,158 --> 00:01:59,039
+The worker didn't approve it.
+
+36
+00:01:59,029 --> 00:02:00,352
+The principal did.
+
+37
+00:02:00,342 --> 00:02:08,999
+That's a bad plan, the principal's failure, caught the way bad plans always are, by review before approval and accountability after.
+
+38
+00:02:09,849 --> 00:02:14,263
+So every failure on this board is one institutions already manage.
+
+39
+00:02:14,253 --> 00:02:18,615
+Then why do AI agents look so much harder to manage than people?
+
+40
+00:02:18,605 --> 00:02:22,388
+It comes down to one design choice, and it isn't on the board.
+
+41
+00:02:23,638 --> 00:02:24,869
+Here's a job.
+
+42
+00:02:24,859 --> 00:02:26,722
+Add a soft start to the motor.
+
+43
+00:02:26,712 --> 00:02:28,578
+Only change the motor code.
+
+44
+00:02:28,568 --> 00:02:30,568
+Do NOT change the settings loader.
+
+45
+00:02:31,118 --> 00:02:34,537
+An AI agent works the way a contractor does.
+
+46
+00:02:34,527 --> 00:02:37,834
+It reads the order, writes notes, and gets to work.
+
+47
+00:02:37,824 --> 00:02:43,986
+As it works, its notebook, its context, fills with plans, tool output and conversation.
+
+48
+00:02:43,976 --> 00:02:46,006
+So the system summarizes it.
+
+49
+00:02:45,996 --> 00:02:47,826
+Then summarizes it again.
+
+50
+00:02:47,816 --> 00:02:49,460
+Each copy looks fine.
+
+51
+00:02:49,450 --> 00:02:51,500
+One line quietly didn't make it.
+
+52
+00:02:52,150 --> 00:02:53,718
+Now watch the agent.
+
+53
+00:02:53,708 --> 00:02:55,544
+It edits the settings loader.
+
+54
+00:02:55,534 --> 00:02:56,909
+It isn't rebelling.
+
+55
+00:02:56,899 --> 00:03:01,436
+Given its notes, putting the ramp settings in the loader is the tidy choice.
+
+56
+00:03:01,426 --> 00:03:04,241
+From the outside, it looks like defiance.
+
+57
+00:03:04,231 --> 00:03:06,970
+From the inside, it looks like diligence.
+
+58
+00:03:06,960 --> 00:03:10,079
+And the auditor, reading the same notes, approves it.
+
+59
+00:03:11,129 --> 00:03:16,354
+So here's the question that comes before memory, before reasoning, before alignment.
+
+60
+00:03:16,344 --> 00:03:20,172
+Why did the agent's own summary of the job become the job?
+
+61
+00:03:21,222 --> 00:03:23,015
+There are two different things here.
+
+62
+00:03:23,005 --> 00:03:26,358
+Authority is the work order someone actually approved.
+
+63
+00:03:26,348 --> 00:03:30,164
+Testimony is the worker's account of what that order says.
+
+64
+00:03:30,154 --> 00:03:34,298
+In this system, testimony was allowed to replace authority.
+
+65
+00:03:34,288 --> 00:03:36,203
+That's called authority drift.
+
+66
+00:03:37,453 --> 00:03:40,080
+And drift doesn't stop at one lost line.
+
+67
+00:03:40,070 --> 00:03:42,078
+There are two ways work goes wrong.
+
+68
+00:03:42,068 --> 00:03:46,014
+A mistake is a bad cut against a yardstick that stays put.
+
+69
+00:03:46,004 --> 00:03:47,885
+You can measure it and fix it.
+
+70
+00:03:47,875 --> 00:03:50,779
+Drift is when the yardstick itself changes.
+
+71
+00:03:51,829 --> 00:03:58,502
+Next session, the notes get summarized again, and now the summary says the plan includes loader settings.
+
+72
+00:03:58,492 --> 00:04:01,988
+The agent's own change just became part of the plan.
+
+73
+00:04:02,838 --> 00:04:05,362
+The session after that, it builds on it.
+
+74
+00:04:05,352 --> 00:04:06,774
+A settings format.
+
+75
+00:04:06,764 --> 00:04:07,792
+A checker.
+
+76
+00:04:07,782 --> 00:04:09,249
+Tests that all pass.
+
+77
+00:04:09,239 --> 00:04:12,355
+Careful, good work, for a plan nobody signed.
+
+78
+00:04:13,205 --> 00:04:15,713
+Summaries aren't the only way this starts.
+
+79
+00:04:15,703 --> 00:04:23,471
+In a long enough notebook, the original order gets buried in the middle, and the agent fills the gap with a confident guess.
+
+80
+00:04:24,321 --> 00:04:28,869
+Here's the signed order, and here's what the agent now believes it was told.
+
+81
+00:04:28,859 --> 00:04:31,427
+Most of it was never in the original.
+
+82
+00:04:32,477 --> 00:04:34,165
+So who moved the yardstick?
+
+83
+00:04:34,155 --> 00:04:35,839
+Nobody decided to.
+
+84
+00:04:35,829 --> 00:04:40,239
+Each copy was made from the last copy, and small changes piled up.
+
+85
+00:04:41,289 --> 00:04:43,257
+Swap the worker for a person.
+
+86
+00:04:43,247 --> 00:04:46,341
+An engineer misremembers a design change.
+
+87
+00:04:46,331 --> 00:04:50,347
+A bookkeeper misunderstands what a payment was approved for.
+
+88
+00:04:50,337 --> 00:04:52,048
+People do this constantly.
+
+89
+00:04:52,498 --> 00:04:56,980
+But the engineer's memory doesn't become an approved change to the blueprint.
+
+90
+00:04:56,970 --> 00:05:00,334
+The bookkeeper's belief doesn't become an authorization.
+
+91
+00:05:00,324 --> 00:05:03,072
+Somewhere outside their heads, there's a record.
+
+92
+00:05:03,062 --> 00:05:11,378
+And every working institution enforces one rule: the person who does the work doesn't get to approve changes to what the work is.
+
+93
+00:05:12,428 --> 00:05:15,858
+Banks: the person who enters a payment can't approve it.
+
+94
+00:05:15,848 --> 00:05:22,520
+Aviation: the pilot reads the clearance back, and the controller checks it against what was actually issued.
+
+95
+00:05:22,510 --> 00:05:29,881
+Hospitals: before a dose is given, a scanner checks it against the active order, not against the nurse's memory.
+
+96
+00:05:29,871 --> 00:05:33,526
+And a shift change is context compaction for humans.
+
+97
+00:05:33,516 --> 00:05:38,004
+Hospitals that standardized their handoffs saw fewer medical errors.
+
+98
+00:05:38,854 --> 00:05:40,257
+None of this is new.
+
+99
+00:05:40,247 --> 00:05:45,497
+Some of the oldest writing we have is administrative: who gets how much beer and bread.
+
+100
+00:05:45,487 --> 00:05:49,843
+We've been keeping the work order outside the worker for thousands of years.
+
+101
+00:05:51,093 --> 00:05:56,097
+Now imagine running a human project the way many AI agents are run.
+
+102
+00:05:56,087 --> 00:05:59,775
+Every evening, each worker writes a summary of the blueprint.
+
+103
+00:05:59,765 --> 00:06:01,694
+The blueprint goes in the shredder.
+
+104
+00:06:01,684 --> 00:06:04,337
+Tomorrow, everyone works from their summary.
+
+105
+00:06:04,327 --> 00:06:07,112
+Tomorrow night, they summarize the summary.
+
+106
+00:06:07,562 --> 00:06:14,821
+Within a week you're building a different building, and every worker can sincerely explain why their version is the plan.
+
+107
+00:06:15,671 --> 00:06:19,924
+Nobody would conclude that people are too unreliable to build things.
+
+108
+00:06:19,914 --> 00:06:22,082
+They'd ask who shredded the blueprint.
+
+109
+00:06:22,072 --> 00:06:23,869
+That's a management failure.
+
+110
+00:06:23,859 --> 00:06:26,556
+AI workers deserve the same standard.
+
+111
+00:06:27,806 --> 00:06:30,194
+The usual fix is a better memory.
+
+112
+00:06:30,184 --> 00:06:31,623
+Bigger context.
+
+113
+00:06:31,613 --> 00:06:32,971
+Smarter summaries.
+
+114
+00:06:32,961 --> 00:06:35,176
+That helps, but it can't close the gap.
+
+115
+00:06:35,626 --> 00:06:38,900
+Take two work orders that differ in one restriction.
+
+116
+00:06:38,890 --> 00:06:43,312
+If the summary drops that line, both orders produce the same summary.
+
+117
+00:06:43,302 --> 00:06:49,027
+From the summary alone, no intelligence, however great, can tell which one was approved.
+
+118
+00:06:49,017 --> 00:06:51,595
+It can guess, and it'll usually guess right.
+
+119
+00:06:51,585 --> 00:06:53,642
+But a good guess isn't a record.
+
+120
+00:06:54,692 --> 00:06:56,887
+Researchers have now measured this.
+
+121
+00:06:56,877 --> 00:07:08,960
+Across seven model families, agents that never broke a rule while it was in view broke it about thirty percent of the time after compaction, and up to fifty-nine percent for some models.
+
+122
+00:07:08,950 --> 00:07:13,868
+When the rule was kept outside the compaction, violations went back to zero.
+
+123
+00:07:14,918 --> 00:07:24,280
+A second study found one production tool's compaction kept about half of the safety rules after one round, and one in ten after five.
+
+124
+00:07:24,270 --> 00:07:27,898
+The model affected how often a lost rule got broken.
+
+125
+00:07:27,888 --> 00:07:32,268
+Whether the rule could be lost at all was decided by the architecture.
+
+126
+00:07:33,518 --> 00:07:35,740
+And look at what happens to every check.
+
+127
+00:07:35,730 --> 00:07:41,183
+An auditor checking this work passes every step, because every step matches the notes.
+
+128
+00:07:41,833 --> 00:07:44,284
+It's the same for every control we have.
+
+129
+00:07:44,274 --> 00:07:49,425
+Tests, audits, approvals, limits: they all measure the work against the work order.
+
+130
+00:07:49,415 --> 00:07:56,926
+If the worker can rewrite the work order, every control measures against the wrong yardstick, and every one of them passes.
+
+131
+00:07:57,576 --> 00:08:00,443
+That's why authority drift isn't on the board.
+
+132
+00:08:00,433 --> 00:08:02,505
+It isn't one failure among many.
+
+133
+00:08:02,495 --> 00:08:04,974
+It's the one that switches off all the others.
+
+134
+00:08:04,964 --> 00:08:07,480
+That's what makes an agent unmanageable.
+
+135
+00:08:07,470 --> 00:08:13,516
+And for any worker, human or AI, unmanageable is the failure that actually matters.
+
+136
+00:08:14,966 --> 00:08:17,512
+The fix is old, and simple to say.
+
+137
+00:08:17,502 --> 00:08:21,814
+Keep the signed work order with the office, where the agent can't edit it.
+
+138
+00:08:22,464 --> 00:08:24,859
+The agent's notebook is just notes.
+
+139
+00:08:24,849 --> 00:08:29,858
+Its tools let it change things, but having the keys doesn't mean it's allowed to use them.
+
+140
+00:08:30,508 --> 00:08:34,886
+For people, we enforce that with signatures, readbacks and scanners.
+
+141
+00:08:34,876 --> 00:08:46,164
+For an AI agent, we need one more piece: a way to prove, at the moment of action, that the worker is holding the real work order, and not its own reconstruction of it.
+
+142
+00:08:46,154 --> 00:08:47,785
+That takes five steps.
+
+143
+00:08:49,035 --> 00:08:50,044
+Step one.
+
+144
+00:08:50,034 --> 00:08:54,423
+When a session starts, the agent reads in its work order from the office.
+
+145
+00:08:55,073 --> 00:09:00,830
+Stamped right on that copy is a job code: a long random number made up on the spot.
+
+146
+00:09:01,680 --> 00:09:06,183
+The code is tied to this version of the order, this agent, and this session.
+
+147
+00:09:07,033 --> 00:09:10,731
+It's not the order's filing number, which anyone could look up.
+
+148
+00:09:10,721 --> 00:09:14,318
+It exists only on the copy the office handed over.
+
+149
+00:09:14,968 --> 00:09:16,568
+Now the agent has it.
+
+150
+00:09:16,558 --> 00:09:18,978
+But having it in the notebook is one thing.
+
+151
+00:09:18,968 --> 00:09:21,929
+Being able to produce it when it counts is another.
+
+152
+00:09:22,979 --> 00:09:24,071
+Step two.
+
+153
+00:09:24,061 --> 00:09:28,515
+Before the agent can change anything real, it has to get through a gate.
+
+154
+00:09:28,505 --> 00:09:31,910
+And the gate asks one question: what's your job code?
+
+155
+00:09:32,560 --> 00:09:35,120
+The agent has to write the code itself.
+
+156
+00:09:35,110 --> 00:09:37,646
+The gate won't fill it in or offer a hint.
+
+157
+00:09:37,636 --> 00:09:38,914
+It only checks.
+
+158
+00:09:39,564 --> 00:09:40,454
+Match.
+
+159
+00:09:40,444 --> 00:09:43,550
+A one-time ticket prints, good for one action.
+
+160
+00:09:44,400 --> 00:09:50,128
+Getting the code right shows the agent has its real work order, and knows which one it is.
+
+161
+00:09:50,118 --> 00:09:55,540
+And an agent that can find the code almost always has a working idea of its job.
+
+162
+00:09:55,530 --> 00:10:00,797
+It's like a contractor who's planned the job, and pulls out the job number before starting.
+
+163
+00:10:01,647 --> 00:10:04,192
+But sometimes the agent can't produce it.
+
+164
+00:10:04,182 --> 00:10:06,247
+Say the session just started fresh.
+
+165
+00:10:06,237 --> 00:10:11,845
+The agent never read the work order, but it still knows a code goes there, so it makes one up.
+
+166
+00:10:12,495 --> 00:10:18,207
+The gate says no, and tells it exactly what to do: read your work order, then try again.
+
+167
+00:10:18,197 --> 00:10:19,795
+It does, and gets through.
+
+168
+00:10:21,045 --> 00:10:23,269
+Or the notebook just got summarized.
+
+169
+00:10:23,259 --> 00:10:28,309
+Rewriting the notebook cancels the old code, even if a copy of it survived.
+
+170
+00:10:29,159 --> 00:10:32,327
+Same answer: read your work order, and try again.
+
+171
+00:10:34,659 --> 00:10:40,863
+Or the work order is buried so deep in a long notebook that the agent misremembers the code.
+
+172
+00:10:41,513 --> 00:10:42,423
+Denied.
+
+173
+00:10:42,413 --> 00:10:43,618
+Read it again.
+
+174
+00:10:43,608 --> 00:10:44,467
+Through.
+
+175
+00:10:46,013 --> 00:10:51,961
+And instructions that sneak in from outside, like this note, never got a code from the office.
+
+176
+00:10:51,951 --> 00:10:54,111
+They can't get through as a work order.
+
+177
+00:10:54,961 --> 00:10:59,917
+Guessing the code is like guessing a twenty-digit lottery number on the first try.
+
+178
+00:11:01,167 --> 00:11:02,301
+Step three.
+
+179
+00:11:02,291 --> 00:11:06,104
+With the ticket, the gate hands back the whole signed work order.
+
+180
+00:11:06,094 --> 00:11:07,261
+Not a summary.
+
+181
+00:11:07,251 --> 00:11:09,341
+The real thing, word for word.
+
+182
+00:11:09,991 --> 00:11:13,434
+This agent was about to head for the settings loader.
+
+183
+00:11:13,424 --> 00:11:17,252
+Now the rule is right in front of it, at the moment it matters.
+
+184
+00:11:17,702 --> 00:11:19,751
+So it turns back to the motor code.
+
+185
+00:11:21,202 --> 00:11:27,066
+It's what a good contractor does: plan the job, then reread the contract before making the cut.
+
+186
+00:11:28,116 --> 00:11:29,218
+Step four.
+
+187
+00:11:29,208 --> 00:11:33,414
+Before the agent can even write the action, it has to write a claim.
+
+188
+00:11:33,864 --> 00:11:39,182
+A claim says, in its own words, why the work order allows this exact action.
+
+189
+00:11:40,632 --> 00:11:44,437
+Only once the claim is written does the action part unlock.
+
+190
+00:11:45,287 --> 00:11:49,086
+The gate checks that the claim is there, and tied to this action.
+
+191
+00:11:49,076 --> 00:11:51,591
+It doesn't decide whether the claim is right.
+
+192
+00:11:51,581 --> 00:11:53,384
+That's what reviewers are for.
+
+193
+00:11:54,034 --> 00:11:55,931
+And every claim gets filed.
+
+194
+00:11:55,921 --> 00:12:03,464
+It's a reason written before the work, not an excuse made up afterward, so later anyone can look up why something was done.
+
+195
+00:12:04,514 --> 00:12:05,692
+Step five.
+
+196
+00:12:05,682 --> 00:12:08,909
+Now the agent writes the action, and it goes through.
+
+197
+00:12:08,899 --> 00:12:10,629
+The ticket is used up.
+
+198
+00:12:10,619 --> 00:12:12,224
+The job code isn't.
+
+199
+00:12:12,874 --> 00:12:14,119
+Next action?
+
+200
+00:12:14,109 --> 00:12:16,559
+Same gate, same code, new ticket.
+
+201
+00:12:17,209 --> 00:12:19,722
+The agent reads its work order in once.
+
+202
+00:12:19,712 --> 00:12:22,634
+After that, every action runs the same loop.
+
+203
+00:12:22,624 --> 00:12:23,777
+Show the code.
+
+204
+00:12:23,767 --> 00:12:25,368
+Get the full order back.
+
+205
+00:12:25,358 --> 00:12:26,364
+Say why.
+
+206
+00:12:26,354 --> 00:12:27,178
+Act.
+
+207
+00:12:27,168 --> 00:12:30,117
+It only reads in again if it loses the code.
+
+208
+00:12:31,167 --> 00:12:33,106
+Notice what isn't in the loop.
+
+209
+00:12:33,096 --> 00:12:37,392
+Reading files, searching, planning and thinking never touch the gate.
+
+210
+00:12:37,382 --> 00:12:45,802
+Only actions that change something real go through it: editing a file, running a command that changes things, sending a message.
+
+211
+00:12:46,652 --> 00:12:48,793
+That's what keeps the agent fast.
+
+212
+00:12:48,783 --> 00:12:53,644
+It can research, explore, and think through wrong ideas as much as it likes.
+
+213
+00:12:53,634 --> 00:12:58,631
+Research runs read-only, so it can't change anything, even by accident.
+
+214
+00:12:58,621 --> 00:13:05,339
+A wrong idea costs nothing until it tries to become an action, and that's exactly where the gate checks it.
+
+215
+00:13:06,189 --> 00:13:10,671
+What counts as real depends on what an action does, not what it's called.
+
+216
+00:13:10,661 --> 00:13:14,987
+A read that could send private data somewhere counts as real too.
+
+217
+00:13:16,237 --> 00:13:18,300
+Let's run that drift story again.
+
+218
+00:13:18,290 --> 00:13:20,227
+The notes still get summarized.
+
+219
+00:13:20,217 --> 00:13:22,520
+The loader rule still drops out of them.
+
+220
+00:13:22,510 --> 00:13:24,161
+Notebooks are notebooks.
+
+221
+00:13:24,811 --> 00:13:28,603
+But to change anything, the agent has to go through the gate.
+
+222
+00:13:28,593 --> 00:13:33,113
+And the gate hands back the real work order, with the loader rule still on it.
+
+223
+00:13:33,963 --> 00:13:38,992
+To act, it would have to write a claim saying the work order allows changing the loader.
+
+224
+00:13:38,982 --> 00:13:42,362
+The work order sitting right in front of it says the opposite.
+
+225
+00:13:43,412 --> 00:13:45,697
+Its notes can say whatever they want.
+
+226
+00:13:45,687 --> 00:13:47,674
+They never become the work order.
+
+227
+00:13:48,524 --> 00:13:53,422
+And if the loader really does need to change, the agent can't just decide that.
+
+228
+00:13:53,412 --> 00:13:55,021
+It asks the office.
+
+229
+00:13:55,671 --> 00:13:59,189
+The office sees exactly what would change, and decides.
+
+230
+00:13:59,179 --> 00:14:04,263
+If it signs, there's a new version with a new code, and the old one stops working.
+
+231
+00:14:05,113 --> 00:14:08,903
+That's the only way the yardstick moves: the office moves it.
+
+232
+00:14:10,353 --> 00:14:12,594
+Does the gate stop every mistake?
+
+233
+00:14:12,584 --> 00:14:13,356
+No.
+
+234
+00:14:13,346 --> 00:14:17,110
+An agent with a valid ticket can still get the job wrong.
+
+235
+00:14:17,760 --> 00:14:20,884
+But now checking the work is a small, bounded job.
+
+236
+00:14:20,874 --> 00:14:26,529
+Each action leaves one folder: the signed order, the claim, the action, and the result.
+
+237
+00:14:26,519 --> 00:14:27,834
+Three questions.
+
+238
+00:14:27,824 --> 00:14:30,106
+Does the claim match the signed order?
+
+239
+00:14:30,096 --> 00:14:32,076
+Does the action match the claim?
+
+240
+00:14:32,066 --> 00:14:36,436
+And does the result match all three: the order, the claim, and the action?
+
+241
+00:14:37,286 --> 00:14:39,874
+A mistake can show up against any of them.
+
+242
+00:14:39,864 --> 00:14:42,386
+An instruction in the order that got missed.
+
+243
+00:14:42,376 --> 00:14:44,734
+A claim the result doesn't live up to.
+
+244
+00:14:44,724 --> 00:14:48,241
+Or an action that was supposed to produce something different.
+
+245
+00:14:49,091 --> 00:14:51,530
+Two checkers ask the same questions.
+
+246
+00:14:51,520 --> 00:14:55,769
+The agent checks right after it acts, to be sure it did what it planned.
+
+247
+00:14:55,759 --> 00:14:59,466
+The auditor checks later, to catch anything the agent missed.
+
+248
+00:15:00,116 --> 00:15:05,955
+Here, the action called for a two-hundred-millisecond ramp, and the result is only fifty.
+
+249
+00:15:05,945 --> 00:15:09,171
+Found, and fixed, because the yardstick didn't move.
+
+250
+00:15:10,221 --> 00:15:15,606
+Without a fixed yardstick, the auditor could pass every step and still miss the whole problem.
+
+251
+00:15:15,596 --> 00:15:20,017
+With a fixed one, every mistake is a red mark against the same line.
+
+252
+00:15:21,067 --> 00:15:23,709
+One more option, for high-stakes work.
+
+253
+00:15:23,699 --> 00:15:27,712
+Most changes can be undone, so checking afterward is enough.
+
+254
+00:15:27,702 --> 00:15:34,098
+But some actions can't be taken back, like paying a bill, deleting files, or sending a message.
+
+255
+00:15:34,088 --> 00:15:39,706
+For those, a second agent reviews the claim and the action before anything runs.
+
+256
+00:15:39,696 --> 00:15:43,322
+The reviewer can stop the action, or send it to the office.
+
+257
+00:15:43,312 --> 00:15:44,856
+It can't give permission.
+
+258
+00:15:45,906 --> 00:15:47,204
+Read in, once.
+
+259
+00:15:47,194 --> 00:15:49,788
+Then, for every action: show the code.
+
+260
+00:15:49,778 --> 00:15:51,379
+Get the full order back.
+
+261
+00:15:51,369 --> 00:15:52,375
+Say why.
+
+262
+00:15:52,365 --> 00:15:53,189
+Act.
+
+263
+00:15:54,639 --> 00:15:58,489
+With the work order held outside the worker, something changes.
+
+264
+00:15:58,479 --> 00:16:03,325
+Every failure that's left is one institutions already know how to manage.
+
+265
+00:16:03,315 --> 00:16:05,786
+And the AI worker brings fewer of them.
+
+266
+00:16:05,776 --> 00:16:07,947
+It doesn't get tired at hour ten.
+
+267
+00:16:07,937 --> 00:16:09,325
+It can't be bribed.
+
+268
+00:16:09,315 --> 00:16:11,352
+It has no paycheck to protect.
+
+269
+00:16:11,802 --> 00:16:14,533
+Its work can be audited more completely too.
+
+270
+00:16:14,523 --> 00:16:25,001
+Every action through the harness can be logged, checked and replayed, and an AI reviewer can start fresh every time, isolated from other reviewers' opinions.
+
+271
+00:16:24,991 --> 00:16:29,081
+Fewer kinds of failure doesn't automatically mean fewer failures.
+
+272
+00:16:29,071 --> 00:16:31,805
+That has to be measured, task by task.
+
+273
+00:16:31,795 --> 00:16:33,393
+But it's a fair fight now.
+
+274
+00:16:34,443 --> 00:16:37,132
+So what changes when the yardstick holds still?
+
+275
+00:16:37,582 --> 00:16:42,599
+A note slipped in from outside can still try to talk the agent into a mistake.
+
+276
+00:16:42,589 --> 00:16:44,762
+But it can never become the work order.
+
+277
+00:16:45,412 --> 00:16:48,540
+The notebook doesn't have to hold everything anymore.
+
+278
+00:16:48,530 --> 00:16:52,911
+Good notes are enough, because the real order is always one check away.
+
+279
+00:16:52,901 --> 00:16:59,085
+That makes AI cheaper to run, and lets it spend its effort on the work, instead of on remembering.
+
+280
+00:16:59,735 --> 00:17:01,924
+And mistakes stop being a mystery.
+
+281
+00:17:01,914 --> 00:17:08,278
+Each one is a red mark against the same line, so you can count them, track them, and drive them down.
+
+282
+00:17:09,328 --> 00:17:16,938
+In one builder's system that runs this gate, a two-month audit logged more than eight thousand consequential actions.
+
+283
+00:17:16,928 --> 00:17:22,877
+About four hundred and twenty were blocked because the authority they cited didn't match the record.
+
+284
+00:17:22,867 --> 00:17:24,786
+None were observed getting through.
+
+285
+00:17:24,776 --> 00:17:32,333
+Across that builder's projects, ordinary mistakes still happen several times an hour, and auditors catch and fix them.
+
+286
+00:17:32,323 --> 00:17:39,253
+That's the pattern you'd predict: everyday mistakes stay common and manageable, and the moved yardstick stops.
+
+287
+00:17:39,243 --> 00:17:43,907
+These are the operator's own numbers, and they still need independent checking.
+
+288
+00:17:44,957 --> 00:17:47,265
+Here's a hypothesis worth testing.
+
+289
+00:17:47,255 --> 00:17:52,874
+Agents were deployed without separating what the worker remembers from what was approved.
+
+290
+00:17:52,864 --> 00:17:55,092
+They produced failures that looked rogue.
+
+291
+00:17:55,082 --> 00:17:56,740
+The model took the blame.
+
+292
+00:17:56,730 --> 00:18:00,952
+And the story became: AI is inherently uncontrollable.
+
+293
+00:18:01,602 --> 00:18:03,732
+The risks in that story are real.
+
+294
+00:18:03,722 --> 00:18:10,664
+But none of them were ever unique to AI, and a well-governed AI workforce may handle them better than we do.
+
+295
+00:18:10,654 --> 00:18:12,306
+The defendant may be wrong.
+
+296
+00:18:13,956 --> 00:18:16,068
+So the rule is old, and simple.
+
+297
+00:18:16,058 --> 00:18:17,959
+The worker performs the work.
+
+298
+00:18:17,949 --> 00:18:20,340
+The institution owns the work order.
+
+299
+00:18:20,330 --> 00:18:22,615
+The worker may recommend changing it.
+
+300
+00:18:22,605 --> 00:18:24,256
+It may never rewrite it.
+
+301
+00:18:25,106 --> 00:18:27,626
+The gate doesn't make the agent perfect.
+
+302
+00:18:27,616 --> 00:18:31,775
+It keeps the yardstick from moving, and that's what makes the work checkable.
