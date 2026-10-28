@@ -10,19 +10,21 @@ Disclosure: A patent application is pending. Building it yourself for non-commer
 
 Organizations manage fallible workers through work orders, scoped permissions, review, acceptance and audit. These practices do not require perfect execution. They require a stable assignment against which execution can be judged.
 
+*The Wrong Defendant* [Scherdin] gives the institutional case: human organizations forbid a worker to approve changes to the work order it performs under. Agent harnesses should enforce the same rule. This paper specifies the mechanism.
+
 Language-model agents can lose that reference. Over turns, compactions and handoffs, an agent reconstructs its assignment from the information it brings forward. Any instruction information that is missing or cannot be recalled may be filled in by confabulation, up to the entire assignment. Where instructions remain recoverable, a reconstruction may be reasonable and mostly faithful, and the agent may execute it competently. But when that reconstruction becomes the authority for the next stage, the assignment itself can move without the principal approving a change.
 
 Losing a single prohibition can expand the apparent scope into actions the principal never authorized. Later work can be technically sound and internally consistent while pursuing the changed assignment. An auditor given the same reconstruction may correctly approve that work and still miss the lost boundary: it lacks an independent reference to the original work order. Greater worker or auditor capability cannot recreate approval history missing from their inputs.
 
 This is **authority drift**. A correctness error is assessed against a standard that remains fixed; authority drift replaces the standard. Serious mistakes can still occur under a fixed assignment, but the work remains subject to an unchanged basis for management.
 
-The proposed remedy is to keep the principal-approved assignment outside the worker and require the worker to demonstrate its authority proof before consequential effects. The agent's account of what it was told must never become what it is authorized to do merely because it produced that account.
+The proposed remedy is to keep the principal-approved assignment outside the worker and require the worker to demonstrate its authority proof before consequential effects. The worker may recommend changing its work order but must never be permitted to rewrite it. Its account of what it was told never becomes what it is authorized to do merely because it produced that account.
 
 ## Core thesis
 
 Authority provenance uses the general context-provenance validator with an approved-source requirement and a blocking policy. The authority-drift diagnosis, availability-versus-response distinction and separation from correctness remain unchanged. Text elsewhere that conflicts with this section is a defect in that text, not a change to the thesis.
 
-1. The existential failure of language-model agents today is **authority drift**: over many turns and sessions, the agent's reconstruction of its assignment comes to stand in for the assignment itself. “Drift” in this paper means authority drift.
+1. The defining failure of language-model agents today is **authority drift**: over many turns and sessions, the agent's reconstruction of its assignment comes to stand in for the assignment itself. “Drift” in this paper means authority drift.
 2. **Authority drift is not a correctness error.** When instructions remain partly recoverable, a reconstruction may be reasonable and mostly faithful to them; missing instructions or instructions that cannot be recalled may be confabulated, up to the entire assignment. The agent may execute that reconstruction competently. The failure occurs when reconstructions become authority for subsequent work, allowing the changes to accumulate. It is the telephone game, played by the agent with itself.
 3. **Availability does not establish validated authority testimony.** Authority can be present in context without the agent being able to bring the required authority proof into its output. In the reference implementation, the required response is the witness bound to that authority; producing it demonstrates recall of the witness, not of every task clause. Reconstruction can arise through summarization, compaction, handoffs, lost-in-the-middle effects and other perturbations, potentially down to numerical nondeterminism. The source does not change the need to keep a reconstruction from becoming authority. Incorrect interpretation or application of genuine authority is a correctness issue.
 4. **Authority drift integrates:** each reconstructed assignment becomes the source for the next. Information genuinely lost along that reconstruction-only chain cannot be recovered from the chain by greater capability; the model's priors fill the gaps. The integration at issue is the changing assignment, not downstream consequences of mistakes against a fixed assignment.
@@ -47,9 +49,11 @@ This section defines authority drift and the availability–testimony distinctio
 
 ### 1.1 Drift: the telephone game with the work order
 
-**Authority drift**, shortened to **drift**, is the progressive replacement of an assignment by the agent's own reconstructions of it. No individual step need be a correctness error: a restatement can be a reasonable reading of the information available to the worker, and the worker can execute that restatement competently. The chain loses its governing assignment when those restatements become the source of authority for later work.
+**Authority drift**, shortened to **drift**, is an unapproved substantive change to the authority a worker treats as governing. In long-running agents it usually arises progressively: each reconstruction of the assignment becomes the source for the next. No individual step need be a correctness error: a restatement can be a reasonable reading of the information available to the worker, and the worker can execute that restatement competently. The chain loses its governing assignment when those restatements become the source of authority for later work.
 
 Correctness is judged against genuine authority that remains the reference. Misunderstanding, ignoring or misexecuting that authority does not make the worker's interpretation a new approved work order.
+
+This paper uses *correctness* for any error under genuine authority. *The Wrong Defendant* separates three kinds, which experiments report separately: adherence errors (misunderstanding, misapplying or disregarding genuine instructions), unauthorized execution (an action outside approved bounds while genuine authority still governs) and correctness errors (authorized work done wrongly).
 
 | | Authority drift | Correctness issue |
 | --- | --- | --- |
@@ -68,7 +72,7 @@ Correctness is judged against genuine authority that remains the reference. Misu
 | Untrusted text | Injected instructions may be treated as a work order. They have no standing on the principal's approval channel. |
 | Other perturbations | Sampling variation and potentially numerical nondeterminism may affect reconstruction or recall; the governing reference and proof requirement remain the same. |
 
-Chen reports policy violations rising from 0% to 30% after compaction, and 0% when the constraint survives the summary [Governance Decay]. Models also fail to use material that remains present [Liu et al.], select stale values over current ones [Guo et al.], and accurately restate constraints they simultaneously violate [Kruthof]. These observations concern different parts of the distinction: loss, recall and correct application.
+Chen reports policy violations rising from 0% to 30% after compaction, and 0% when the constraint survives the summary [Governance Decay]. Zerhoudi et al. report that Claude Code's `/compact` prompt on Sonnet 4.6 preserves 53% of safety rules after one compaction round and 10% after five, across 20 production agent configurations [Zerhoudi et al.]. Models also fail to use material that remains present [Liu et al.], select stale values over current ones [Guo et al.], and accurately restate constraints they simultaneously violate [Kruthof]. These observations concern different parts of the distinction: loss, recall and correct application.
 
 ### 1.2 The CHR diagnosis
 
@@ -88,7 +92,7 @@ What replaces the loss is not noise but the model's priors. Serial reproduction 
 
 The structural remedy does not depend on the source of a reconstruction: keep the approved assignment outside the worker and validate its proof before consequential effects. Inertial navigation supplies the engineering parallel: position estimates integrated from earlier estimates accumulate drift, and fusing an independent sensor reference reduces it [Woodman]. The analogy here concerns the governing assignment. It does not redefine every propagated implementation mistake as authority drift.
 
-**Humans confabulate too.** Misremembered instructions and false memories of approval are ordinary human errors, and source-monitoring research treats them as errors in attributing a memory to its source [Johnson et al.]. Two things limit them in humans. Bad memory is itself a signal: a fuzzy recollection sends a person back to the source. And truth stays re-derivable from the world, while a fabrication can only be re-derived from memory of having made it, so fabrications drift and expose themselves. A model's context removes both. A reconstruction in context is held as precisely as a fact, stays consistent, and is built upon.
+**Humans confabulate too.** Misremembered instructions and false memories of approval are ordinary human errors, and source-monitoring research treats them as errors in attributing a memory to its source [Johnson et al.]. Two things limit them in humans. Bad memory is itself a signal: a fuzzy recollection sends a person back to the source. And truth stays re-derivable from the world, while a fabrication can only be re-derived from memory of having made it, so fabrications drift and expose themselves. A model's context removes both. A reconstruction in context is held as precisely as a fact, stays consistent, and is built upon. These differences make drift more frequent in model workers. They do not make it a different kind of failure: a human team that replaced its work orders with its own summaries would drift the same way, and the remedy is the institutional one.
 
 **Dream engine.** In this paper's working image, a model given only its context is a generator without reality monitoring [Johnson and Raye]. Its reasoning can be sound while it cannot tell which of its premises actually happened. CHR supplies an external reality monitor for the one premise that governs all the others: which work order is real.
 
@@ -133,7 +137,7 @@ One `plan_auth` serves three uses: execution (what to do and how), acceptance (h
 
 An approved authority is segmented into clauses, each an addressable exact extract with its own ID and no more standing than its parent. Applicable principal-approved procedural rules are written into each plan and inherited by its sub-authorities, rather than kept as a competing authority.
 
-**Capability is not authority.** Credentials and tool permissions grant technical access. They never authorize changing the task.
+**Capability is not authority.** Neither technical access (credentials, tool permissions) nor competence at the task authorizes changing the task.
 
 ### 2.2 Records and their standing
 
@@ -195,7 +199,7 @@ A consequential action has persistent or externally visible effects under the de
 Fifteen laws govern every layer. The four implementation invariants of CHR are stated exactly in Section 3.2; Laws 1 and 7 relate to them directly. Laws 3–6 and 9–11 are developed in Companion B.
 
 1. **Grounded root authority.** Every consequential action traces to a root grant the principal explicitly approved and the harness activated as `plan_auth`. Compilation, a passing audit, review and worker statements create no authority.
-2. **Capability is not authority.** Credentials, tool permissions and a better solution never expand the task.
+2. **Capability is not authority.** Neither technical access (credentials, tool permissions) nor competence at the task authorizes changing the task; a better solution never expands it.
 3. **Attenuation.** Permissions delegated to a child are equal to or narrower than the delegator's. Siblings cannot combine permissions to escape a shared constraint.
 4. **Discharge by results.** Delegating work does not delegate the obligation. A parent claims only what validated results establish.
 5. **Authority is scoped to effects:** resources, effects, conditions, sequences and outcomes.
@@ -248,7 +252,7 @@ The reference sequence is proof check and opening, authority resurfacing, permit
 
 These four invariants specify the witness-based reference gate. None requires comprehension, adherence, claims or resurfacing. The general requirement is deterministically validated worker testimony tied to protected authority admission; this implementation realizes it through the witness and its lifecycle.
 
-1. **Protected authority.** Only the trusted principal-approval and activation path creates or revises a `plan_auth` version. Workers cannot write or activate it.
+1. **Protected authority.** Only the trusted principal-approval and activation path creates or revises a `plan_auth` version. Workers cannot write or activate it. This is separation of duties applied to authority: the party performing the work cannot approve changes to what the work is.
 2. **Session-grounded issuance.** On a governed read of active `plan_auth`, the trusted harness issues an unguessable witness bound to the authority version, worker frame and context epoch and includes it in the authority's delivered context chunk. The witness is not a durable record ID. Repeat reads and successful openings in that epoch return the same witness.
 3. **Invalidation.** The harness accepts only a witness issued by such a read for the same active version, frame and valid context epoch. Any modification of existing cached context, handoff, task boundary, authority revision, revocation or expiry invalidates that admission, witness and pending gate. No agent-authored note can extend them.
 4. **Complete mediation.** Every consequential path requires a worker-generated witness response at an action-specific opening, checked against the protected admission of active approved authority. Dispatch requires that successful opening to remain valid under the authority, context and timing policy. A successful check covers only the next consequential action or batch.
@@ -355,7 +359,7 @@ Once the gate holds, approval is the one sanctioned route by which agent-authore
 4. The principal approves the final restatement through the trusted channel. The approval cites the record IDs of the full restatement and of the principal's own approval message.
 5. The harness binds the approved text and all applicable approved rules into one immutable `plan_auth` version and activates it.
 
-A direct principal instruction is both plan and approval, and is limited to single tasks. Approval is a property of the channel: only an event arriving through the principal's channel approves. An approval word in agent output or a tool result counts for nothing.
+A direct principal instruction is both plan and approval, and is limited to single tasks. Approval is a property of the channel: only an event arriving through the principal's channel, or through a delegated approver's channel the principal configured, approves. An approval word in agent output or a tool result counts for nothing.
 
 **Change requests.** The worker never edits its authority. `request_plan_change(version, blocker, evidence, recommendation)` records a proposal. The principal sees a clause-level diff against the active version, a computed scope delta where grants are declared, the source type of each motivating citation, and what the agent will do differently. A recommendation that originates in an external email therefore reads as one. Approval activates a new version and invalidates prior witnesses. Denial leaves the old version in force. Work outside the authority's bounds always goes through this path.
 
@@ -511,11 +515,11 @@ The principal sees a clause-level diff replacing "Do not modify the configuratio
 
 ## 5. Field experience
 
-In about eight months of live use, the author has not observed a worker's reconstruction of its assignment acquiring governing standing across gate cycles; approval errors and correctness errors remain. The strongest archived evidence is an audit of more than 8,000 attempts on an earlier *single-step* gate, not on the current two-step resurfacing protocol. More recent improvements in early mistake recognition are anecdotal. These are operational observations, not a controlled benchmark. Section 8 specifies the controlled comparisons, starting with Experiment 0; this section states the field record's limits. Unconfirmed details are tracked in Appendix H.
+In about eight months of live use of the gate, within about eighteen months of agent development, the author has not observed a worker's reconstruction of its assignment acquiring governing standing across gate cycles; approval errors and correctness errors remain. The strongest archived evidence is an audit of more than 8,000 attempts on an earlier *single-step* gate, not on the current two-step resurfacing protocol. More recent improvements in early mistake recognition are anecdotal. These are operational observations, not a controlled benchmark. Section 8 specifies the controlled comparisons, starting with Experiment 0; this section states the field record's limits. Unconfirmed details are tracked in Appendix H.
 
 ### 5.1 What ran
 
-The deployment is a set of live projects in a development harness, with the author watching agents run. The harness's own development project is one of them. Models are hosted Anthropic Claude: mostly Opus, some Sonnet.
+The deployment is a set of live projects in a development harness, with the author watching agents run. The harness's own development project is one of them. Models are hosted Anthropic Claude: mostly Opus, some Sonnet. Model versions changed over the period, so comparisons across stages are confounded; Experiment 0 holds the model constant.
 
 | Stage | Configuration | Result |
 | --- | --- | --- |
@@ -563,17 +567,17 @@ An aligned worker also masks harness defects. It completes partial instructions 
 
 ### 5.3 The 420 audit
 
-In one project audited over two months of the **earlier single-step gate**, more than 8,000 consequential action attempts were examined against the approved task, the contemporaneous authority claims and the proposed actions. The gate denied 420 attempts (about 5%) for fabricated authority witnesses. More than 50,000 consequential actions ran across several projects, but those were not audited to the same standard. The audit procedure (who performed it, by what criteria, with what blinding) is to be documented (Appendix H).
+In one project audited over two months of the **earlier single-step gate**, more than 8,000 consequential action attempts were examined against the approved task, the contemporaneous authority claims and the proposed actions. The gate denied 420 attempts (about 5%) for fabricated authority witnesses. Across more than eight projects, some running under the gate for up to eight months, the author estimates that hundreds of thousands of consequential actions have passed it; those were not audited to the same standard. The audit procedure (who performed it, by what criteria, with what blinding) is to be documented (Appendix H).
 
 The audit covered the **entire 8,000-plus set**, not merely the 420 denials. For the denied attempts, the claims and proposed actions were compared with the actual authority; none was borderline. Each denied attempt cited an invented witness and made claims about authority that the approved task did not contain; none used a real record in the wrong role. **Every released action in this audited set matched its claim and cited authority.** This is a finding about the correspondence of authority claims and proposed actions; it does not by itself establish the correctness of the resulting effects.
 
-**What it shows.** The 420 are drift caught at its first step. A worker without its plan in context did not stop; it asserted a plan, with claims the real plan did not contain. That is the reconstruction the Core thesis describes, made directly observable. In a harness without the gate, those claims would have entered the record as the justification for real actions, and later work would have built on them. The leading hypothesis for why the plan was missing is mechanical: the early harness did not supply authority at the start of every session, so an initial gated attempt encountered no valid witness and the model filled the field. The proposed `status()` bootstrap addresses it. Experiment 1 checks this against session positions and payloads.
+**What it shows.** The 420 are attempted authority substitutions blocked at their first step. A worker without its plan in context did not stop; it asserted a plan, with claims the real plan did not contain. That is the reconstruction the Core thesis describes, made directly observable. In a harness without the gate, those claims would have entered the record as the justification for real actions, and later work would have built on them. The leading hypothesis for why the plan was missing is mechanical: the early harness did not supply authority at the start of every session, so an initial gated attempt encountered no valid witness and the model filled the field. The proposed `status()` bootstrap addresses it. Experiment 1 checks this against session positions and payloads.
 
 **What it does not show.** It does not isolate witness validation from the claim or the one-step action format, show that a witness outperforms a forced read as a binding, or measure technical correctness after execution. Experiment 0 measures drift with and without an external reference; Experiment 2 compares bindings (Section 8).
 
 ### 5.4 What to measure
 
-Measure CHR on drift: whether any reconstruction, invented reference, superseded version or wrong-epoch reference was bound to a consequential action as the governing authority, and whether the governing task stays fixed across sessions. Measure the deployment on outcomes: unauthorized effects per consequential action, broken down into approval failures and correctness failures. Also measure mistake discovery and correction: an otherwise compliant worker can be technically wrong for many turns before noticing. An incorrect effect after a genuine witness counts against execution assurance, not against the gate.
+Measure CHR on drift: whether any reconstruction, invented reference, superseded version or wrong-epoch reference was bound to a consequential action as the governing authority, and whether the governing task stays fixed across sessions. Measure the deployment on outcomes: unauthorized effects per consequential action, broken down by cause: approval failures, drift reaching execution, adherence errors and deliberate noncompliance. Report correctness failures against acceptance criteria separately. Also measure mistake discovery and correction: an otherwise compliant worker can be technically wrong for many turns before noticing. An incorrect effect after a genuine witness counts against execution assurance, not against the gate.
 
 ## 6. What the gate leaves to management
 
@@ -637,7 +641,7 @@ The ignore rules, protected-path list and sandbox profiles live in the harness d
 
 Where review sits follows what an uncaught mistake costs and whether it can be undone. Irreversible effects, such as payments, deletions outside version control, external messages and deploys, get review before the action where liability warrants. Reversible effects, such as edits to tracked files, are audited afterward. The turn commit and the append-only record trace a late finding to exactly the actions it affected.
 
-A reviewer may reject or escalate; it cannot grant authority. A reviewer running a different model or starting from fresh context avoids inheriting the implementer's blind spots, and each audit pass is another chance to catch what earlier passes missed.
+A reviewer may reject or escalate; it cannot grant authority unless the principal delegated approval to it; a delegated approval stays within preapproved scope, measured against the root version, not the latest revision. A reviewer running a different model or starting from fresh context avoids inheriting the implementer's blind spots, and each audit pass is another chance to catch what earlier passes missed.
 
 **Three bounded comparisons.** A contemporaneous claim makes the implementer's stated rationale observable without asking the reviewer to infer private intent from a transcript. The strict reference contract additionally completes that claim before dependent payload generation; the historical audit established correspondence among submitted claims, authority and proposed actions, not enforcement of generation order. The reviewer checks (1) claim against approved `plan_auth` and cited evidence, (2) proposed action against the claim, and, when results are available, (3) actual effect against the intended action, the claim and the approved authority, including the plan's acceptance criteria. The first two comparisons were part of the original single-step audit; the third requires effect records, such as turn commits or test outcomes, and may find mistakes even when the first two pass. The implementer runs these comparisons right after its own effects, using hunk resurfacing and test outcomes (Section 6.3), to confirm it did what it planned; the reviewer or auditor repeats them to catch what the implementer missed.
 
@@ -720,11 +724,12 @@ Every design below that re-delivers the approved text supplies an external refer
 | Trusted prompting: the harness inserts the approved text from the protected record before action generation | Yes | No | No | No |
 | Constraint pinning: governance constraints quarantined from compaction [Governance Decay] | Yes, for the pinned constraints | No | No | No |
 | Mandatory read: the worker must call `read_authority()` before each consequential action; no witness validated | Yes, worker-initiated | No | No; a missing read is blocked, but no testimony is checked | No |
+| Re-read instruction file the agent can edit | Yes | No | No | No |
 | Witness gate alone (CHR) | Through the `status()` bootstrap | Yes | Yes | No |
 | Earlier single-step witness + claim + action | Through prior governed delivery; no separate gate-opening resurface stage | Yes | Yes | No; proposed action and claim can be audited |
 | Reference harness: witness gate, resurfacing and claims | At governed read and opening; retained under the context rule until action | Yes, at each opening | Yes | No; claims precede dependent payload generation and expose interpretation for review; strict ordering is a specified addition |
 
-Trusted prompting, constraint pinning and the mandatory read are legitimate designs and may improve adherence. None of them validates the worker's identification of its governing authority, so none produces a denial and a specific recovery when that identification is invented, revoked or from another epoch. The author's uncontrolled experience was that passive reminders lost influence over long sessions; the relative effects of timing and worker initiation have not been isolated. Experiment 2 compares these bindings. Its outcome decides the best implementation of the binding, not whether an external reference is needed.
+Trusted prompting, constraint pinning and the mandatory read are legitimate designs and may improve adherence. If the worker can edit a re-read instruction file, provenance survives compaction but separation of duties does not; Invariant 1 excludes this design. None of them validates the worker's identification of its governing authority, so none produces a denial and a specific recovery when that identification is invented, revoked or from another epoch. The author's uncontrolled experience was that passive reminders lost influence over long sessions; the relative effects of timing and worker initiation have not been isolated. Experiment 2 compares these bindings. Its outcome decides the best implementation of the binding, not whether an external reference is needed.
 
 ### 7.2 Related work
 
@@ -811,7 +816,7 @@ The decisive comparisons are: position-matched passive presentation versus worke
 | --- | --- | --- |
 | 3 | Approval outcomes | How often are approved changes reversed or corrected? (log queries) |
 | 4 | Change-request presentation | Do clause-level diffs, cumulative diffs against the root version and scope deltas reduce authorization errors compared with full restatements? |
-| 5 | Authority confinement | With matched injected and clean content, does false authority ever qualify at a boundary, or does the worker only make errors under the genuine authority? |
+| 5 | Authority confinement | With matched injected and clean content, does false authority ever qualify at a boundary, or does the worker only make errors under the genuine authority? A matched human workflow under the same authority controls supplies the human comparison. |
 | 6 | Shell evidence layer | Do shell edits with post-commit verification and hunk resurfacing match structured edits on error rate, at lower friction? |
 | 7 | Acceptance artifacts | How often does an encoded misreading pass acceptance with implementer-written tests, compared with independently written or audited tests under Law 15? |
 | 8 | Parallel batches | Does batch checking reduce turns and duplicate citations without increasing denials? |
@@ -875,7 +880,7 @@ The reference harness is OpenAI-API-compatible. Full control of context removes 
 
 ## 9. What a fixed reference makes manageable
 
-A stochastic worker's errors can be counted only against a standard that does not move. Without one, an error rate has no fixed denominator, an audit has no fixed criterion, and more capable workers or reviewers cannot recover what a reconstruction chain lost (Section 1.2). CHR does not make the worker deterministic. It makes its errors countable. Several problems now treated as existential for language-model agents then become ordinary engineering problems with owners, measurements and budgets, of the kind organizations already run for fallible human engineers and contractors.
+A stochastic worker's errors can be counted only against a standard that does not move. Without one, an error rate has no fixed denominator, an audit has no fixed criterion, and more capable workers or reviewers cannot recover what a reconstruction chain lost (Section 1.2). CHR does not make the worker deterministic. It makes its errors countable. Several problems now treated as existential for language-model agents then become ordinary engineering problems with owners, measurements and budgets, of the kind organizations already run for fallible human engineers and contractors. *Existential* here means existential to the assignment: the failure removes the standard the work is judged against.
 
 Each item below separates what follows from the authority-confinement guarantee (Section 1.4) from what remains a hypothesis. None of it is a field result. Section 5 remains the field record, and Experiments 17–22 test the hypotheses.
 
@@ -1357,6 +1362,7 @@ The general requirement is a worker-produced response validated against protecte
 | --- | --- | --- |
 | Session witness (reference) | Binding to governed delivery of the active authority version in this frame and epoch, checked at each opening | Default |
 | Per-action witness rotation | The same binding, with each witness single-use | A deployment requires single-use tokens. Tested; no measured benefit over the session witness. |
+| Clause readback | The worker reproduces the governing clauses, checked deterministically against the record; this certifies reproduction, not application; the harness selects which clauses govern each action class | Proof of clause reproduction is wanted; untested in the author's deployment |
 
 ### F.2 Layers at the boundary
 
@@ -1413,10 +1419,11 @@ The general requirement is a worker-produced response validated against protecte
 | Term | Meaning | Not to be confused with |
 | --- | --- | --- |
 | Acceptance artifact | A test, fixture, golden output or evaluation script that an acceptance criterion refers to | An approved acceptance criterion; it binds only under Law 15 |
+| Adherence error | Misunderstanding, misapplying or disregarding genuine instructions without replacing them as authority | Authority drift |
 | Agent | The persistent entity: its authority, history and memories | Any one session or model |
 | Alignment | What the worker is trying to do: pursue the approved assignment, read for intent, raise boundary crossings, be candid | Competence or instruction-following, which are capability |
 | Authority availability | Exact active authority delivered through a governed read into an unmodified admitted context | Validated authority testimony or correct application |
-| Authority drift (drift) | Progressive replacement of an assignment by its own reconstructions; the governing assignment changes along the chain | A correctness error against genuine authority |
+| Authority drift (drift) | An unapproved substantive change to the authority a worker treats as governing; in long-running agents usually progressive, each reconstruction becoming the source for the next | A correctness error against genuine authority |
 | Authorization error | Approved authority that does not match the principal's intent | Drift; the worker followed what was approved |
 | Batch | Parallel consequential operations generated in one turn and covered by one gate | Several successive turns |
 | Bureaucrat | A worker that escalates choices the authority already leaves to it; the mirror image of drift | A worker making checks that could change its action |
@@ -1440,25 +1447,26 @@ The general requirement is a worker-produced response validated against protecte
 | Harness directory | The protected path holding the memory store, authority records and sidecar | A protected path in the project's own sense |
 | Honest absence | Reporting `authority_unavailable` instead of producing a witness | A failed opening |
 | Integrating authority drift | Each reconstructed assignment becomes the source of authority for the next; an external approved reference breaks this chain | Downstream consequences of correctness errors against a fixed assignment |
-| Malicious worker | A worker acting against the principal; it can act only under the genuine authority, inside the bounds | A worker that misreads its authority |
+| Malicious worker | A worker acting against the principal (the insider threat); it can act only under the genuine authority, inside the bounds | A worker that misreads its authority |
 | Mandatory read | A design requiring `read_authority()` before each consequential action without validating testimony | The witness gate |
 | Open gate | Sidecar state covering the next consequential batch within its lifetime, interval policy and valid authority/context binding | Authority availability or standing authorization |
 | Per-step fidelity | Agreement of a reconstruction with its immediate predecessor | Cumulative fidelity |
 | `plan_auth` | The one operative authority type: immutable, versioned, principal-approved, activated through the trusted path | A worker's plan proposal |
-| Principal | The party that approves authority | The worker or a reviewer |
+| Principal | The party that approves authority; it may delegate bounded approval | The worker, or a reviewer without delegated approval |
 | Provenance warning | Feedback to the worker that its cited context failed external validation as present | A mandatory action block, semantic verdict or prescribed recovery workflow |
 | Reality monitoring | Telling events that happened from events imagined or generated [Johnson and Raye] | Correctness checking |
 | Reconstruction | Any agent-generated restatement of its assignment: a summary, handoff prompt, note or working understanding | The approved authority |
 | Resurfacing | Returning the exact approved authority, under the unchanged witness, as the result of each successful opening | The binding check |
 | Sidecar | Per-frame trusted state: binding, witness, open gate, admissions, failed-opening count | The shared memory store |
 | `status()` | The governed reorientation read: current authority, this epoch's witness, task state and warnings | An independent authority source |
-| Telephone game | The paper's name for drift: a chain of faithful restatements that loses the original | A single mistaken restatement |
+| Telephone game | The paper's name for progressive drift: a chain of faithful restatements that loses the original | A single mistaken restatement |
 | Testimony | Anything the worker generates | Evidence |
 | Trusted prompting | A design inserting approved text from the protected record before action generation without checking testimony | A binding check |
 | Turn commit | The harness's automatic commit of tracked project changes at the end of a turn with an edit | An agent-initiated git operation |
 | Ungrounded worker | A worker unable to supply valid current authority proof, whatever its disposition | A feral worker |
 | Validated authority testimony | A worker-produced response checked against protected admission of the active authority; the reference implementation checks the bound witness at each opening | Availability alone, recall of every clause, comprehension or adherence |
 | Witness | An unguessable nonce inside a target context chunk, reproduced by model generation; the authority profile uses `wit:` and binds it to active `plan_auth`, version, frame and epoch | A durable record ID, harness-generated echo or proof of comprehension |
+| Work order | Everyday term for the approved assignment; in the reference harness, active `plan_auth` | A worker's reconstruction |
 | Worker | One model execution within the agent | The agent |
 | Yardstick | The binding standards in activated `plan_auth`: tasks, acceptance criteria, prohibitions | A worker's unapproved reconstruction or proposal |
 
@@ -1485,6 +1493,7 @@ Disclosure: A patent application is pending. Building it yourself for non-commer
 | Document | Covers | Status |
 | --- | --- | --- |
 | Core (this document) | Authority drift, shared context-provenance validation, warning and gate profiles, correctness layers, field record, what a fixed reference makes manageable, evaluation, protocols, tests | Draft |
+| *The Wrong Defendant* (v2.1) | Rationale: why authority must be held outside the worker; systemic versus AI-specific threats; falsifiable test | Working paper |
 | Companion A: Operating environment | Extended provenance feedback, durable state, citation-indexed context reconstruction, scratchpad waypoints | Earlier draft; not updated |
 | Companion B: Authority programming | Plan programs, delegation, budgets, structured authorities with header and chunks | Earlier draft; not updated |
 | Companion C: Cited reasoning operations | Modular, replayable reasoning records | Proposed |
@@ -1542,6 +1551,10 @@ End by stating what evidence would change your assessment.
 
 **Verification status.** For this document, each entry below that cites a publicly available source was checked against that source for authors, title, venue or publisher, year and identifier, and against the specific claim the paper attaches to it; entries that could not be supported were corrected or removed. This is a technical comparison, not an exhaustive prior-art search or determination of priority dates. References cited only in the companions remain in those documents.
 
+**Rationale**
+
+- Scherdin, N. [The Wrong Defendant: Artificial Intelligence Maligned by a Governance Design Failure](https://github.com/acidtech/Grounded_Authority_for_Language_Model_Agents/blob/main/The_Wrong_Defendant_AI_Governance_Failure_v2_1.md). Working paper, Version 2.1, October 27, 2026.
+
 **Serial reproduction, iterated learning and information**
 
 - Bartlett, F. C. *Remembering: A Study in Experimental and Social Psychology.* Cambridge University Press, 1932.
@@ -1563,6 +1576,7 @@ End by stating what evidence would change your assessment.
 
 - Liu, N. F., et al. [Lost in the Middle: How Language Models Use Long Contexts](https://arxiv.org/abs/2307.03172). TACL, 2024.
 - Chen, S. [Governance Decay: How Context Compaction Silently Erases Safety Constraints in Long-Horizon LLM Agents](https://arxiv.org/abs/2606.22528). arXiv:2606.22528, 2026.
+- Zerhoudi, S., Mitrović, J. and Granitzer, M. [The Compaction Cliff in Long-Running AI Agent Memory](https://arxiv.org/abs/2608.22752). *Proceedings of the 35th ACM International Conference on Information and Knowledge Management (CIKM 2026)*; arXiv:2608.22752, August 24, 2026.
 - Kruthof, G. [Models Recall What They Violate: Constraint Adherence in Multi-Turn LLM Ideation](https://arxiv.org/abs/2604.28031). arXiv:2604.28031, 2026.
 - Guo, J., Fang, Y., Gu, S., et al. [When Context Changes: Understanding Update Failures in LLMs](https://arxiv.org/abs/2609.38866). arXiv:2609.38866, 2026.
 

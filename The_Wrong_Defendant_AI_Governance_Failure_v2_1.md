@@ -2,6 +2,8 @@
 
 ### Why ordinary human management may be sufficient for reliable autonomous AI work
 
+Nathan Scherdin
+
 **Working paper — Version 2.1 — October 27, 2026**
 
 ## Abstract
@@ -115,7 +117,7 @@ The person authorized to accept a deliverable need not be the most capable of pr
 
 The division of labor follows: **train models to reason, investigate, communicate honestly, and execute legitimate assignments well; implement authorization, recordkeeping, change control, and audit in the surrounding system.** Training remains valuable, as it is for human workers, but in neither case substitutes for authorization controls.
 
-The same logic places humans. Human reviewers degrade under volume (§7), so human judgment belongs where volume is lowest and leverage highest: approving the work order and authority changes beyond delegated scope. That load scales with changes to authority, not with the volume of work. With bounds well specified at planning time, it can approach zero after initial approval; the current approval load reported in §8 is the baseline. Plan construction is the subject of a companion paper.
+The same logic places humans. Human reviewers degrade under volume (§7), so human judgment belongs where volume is lowest and leverage highest: approving the work order and authority changes beyond delegated scope. That load scales with changes to authority, not with the volume of work. With bounds well specified at planning time, it can approach zero after initial approval; the current approval load reported in §8 is the baseline. Plan construction, the restatement loop that fixes those bounds before approval, is specified in *Grounded Authority for Language-Model Agents*, Section 3.9.
 
 ## 7. The safety advantage of a governed AI workforce
 
@@ -139,7 +141,7 @@ A demonstrated failure mode with no human counterpart would be a genuinely AI-sp
 
 The motivating operator reports about eighteen months of developing and observing autonomous agents before and after implementing an authority-provenance gate. The principal reported outcome: catastrophic project deviations seen before the gate stopped recurring after it.
 
-In one two-month project audit, the operator reports more than **8,000 gated consequential actions**, about **420 authority mismatches blocked before action**, and **no observed confabulated-authority actions passing the gate**. [AUTHOR: state which gate form from §5.2 was in use.] A blocked mismatch is not necessarily a prevented harm; some may have been harmless paraphrase, and classifying a sample is part of the formal study (§12). The zero-escape figure should likewise be confirmed by independent review for unapproved changes to operative authority, not merely by checking whether an action was out of scope.
+In one two-month project audit, the operator reports more than **8,000 gated consequential actions**, about **420 authority mismatches blocked before action**, and **no observed confabulated-authority actions passing the gate**. The gate checked a worker-generated witness (§5.2). A blocked mismatch is not necessarily a prevented harm: a witness gate blocks a fabricated token, not a paraphrase, but the action behind it may have been harmless; classifying a sample is part of the formal study (§12). The zero-escape figure should likewise be confirmed by independent review for unapproved changes to operative authority, not merely by checking whether an action was out of scope.
 
 The operator now runs multiple continuous projects with hundreds of thousands, potentially millions, of logged actions. Agent auditors correct ordinary mistakes several times per hour; when a correction needs revised authority, agents propose and request approval rather than revising the plan. The operator accepts more than 90% of recommendations, attributing most disagreements to preference. The operator also reports a tendency to approve without full review unless deliberately checking, the human vigilance failure of §7. Approval timing is not yet logged.
 
