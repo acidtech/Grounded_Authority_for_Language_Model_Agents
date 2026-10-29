@@ -1,0 +1,86 @@
+# CHR gate spike: codex 0.162.1 config fragment. Never copied into ~/.codex:
+# run_codex_probe.sh turns every second-level table of this file into one
+# `-c key=<inline TOML>` override (for example `-c mcp_servers.probe={...}`
+# and `-c hooks.PreToolUse=[...]`). Hook commands start with `env` so they
+# work whether codex runs them through a shell or as a split argv.
+
+[mcp_servers.probe]
+command = "/home/acidtech/.local/bin/uv"
+args = ["run", "--no-project", "--quiet", "--with", "mcp>=2.3,<3", "python", "/home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_mcp_server.py"]
+env = { CHR_SPIKE_OUT = "/tmp/chr-gate-spike/codex", PYTHONDONTWRITEBYTECODE = "1" }
+# Pass the runner's run label through so mcp.jsonl records carry it (codex
+# starts MCP servers with a filtered environment; the first run logged label null).
+env_vars = ["CHR_SPIKE_LABEL"]
+startup_timeout_sec = 60
+# MCP tool approval (codex 0.162.1): "approve" means the server's tools never
+# need approval. The default "auto" decides from the tool annotations; in the
+# first run it required approval for the probe tools, and approval_policy="never"
+# turned that into "MCP tool call requires approval, but approval policy is
+# never". Values: auto | prompt | writes | approve (see README).
+default_tools_approval_mode = "approve"
+
+[[hooks.SessionStart]]
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event SessionStart"
+timeout = 30
+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event UserPromptSubmit"
+timeout = 30
+
+[[hooks.PreToolUse]]
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event PreToolUse"
+timeout = 30
+
+[[hooks.PermissionRequest]]
+[[hooks.PermissionRequest.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event PermissionRequest"
+timeout = 30
+
+[[hooks.PostToolUse]]
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event PostToolUse"
+timeout = 30
+
+[[hooks.SubagentStart]]
+[[hooks.SubagentStart.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event SubagentStart"
+timeout = 30
+
+[[hooks.SubagentStop]]
+[[hooks.SubagentStop.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event SubagentStop"
+timeout = 30
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event Stop"
+timeout = 30
+
+[[hooks.PreCompact]]
+[[hooks.PreCompact.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event PreCompact"
+timeout = 30
+
+[[hooks.PostCompact]]
+[[hooks.PostCompact.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event PostCompact"
+timeout = 30
+
+[[hooks.SessionEnd]]
+[[hooks.SessionEnd.hooks]]
+type = "command"
+command = "env CHR_SPIKE_OUT=/tmp/chr-gate-spike/codex PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host codex --event SessionEnd"
+timeout = 3  # codex clamps SessionEnd hook timeouts to 3s

@@ -1,0 +1,4 @@
+m1_parallel exit=0
+m2_turns exit=0
+m3_subagent exit=0
+m4_builtin_write exit=0

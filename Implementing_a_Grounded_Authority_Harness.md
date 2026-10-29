@@ -1,6 +1,8 @@
 # Implementing a Grounded Authority Harness
 
-Disclosure: A patent application is pending. Building it yourself for non-commercial or research use is welcome; Commercial use will need a license if the patent issues.
+Disclosure: Patent applications are pending. Non-commercial and research use is permitted under the license (see LICENSE.md); any commercial use requires a separately negotiated license (see COMMERCIAL-LICENSE.md).
+
+License: Copyright (c) 2026 Nathan Scherdin. This document is licensed under CC BY-NC-ND 4.0 (https://creativecommons.org/licenses/by-nc-nd/4.0/), with an additional permission for non-commercial translations; see LICENSE.md. Any commercial use requires a separately negotiated license; see COMMERCIAL-LICENSE.md.
 
 ## Scope
 

@@ -1,0 +1,64 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env CHR_GATE_SERVER=chr_gate chrgate-hook --host codex"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env CHR_GATE_SERVER=chr_gate chrgate-hook --host codex"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env CHR_GATE_SERVER=chr_gate chrgate-hook --host codex"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env CHR_GATE_SERVER=chr_gate chrgate-hook --host codex"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env CHR_GATE_SERVER=chr_gate chrgate-hook --host codex"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env CHR_GATE_SERVER=chr_gate chrgate-hook --host codex"
+          }
+        ]
+      }
+    ]
+  }
+}

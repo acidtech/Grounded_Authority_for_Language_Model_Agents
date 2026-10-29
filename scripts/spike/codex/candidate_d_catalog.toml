@@ -1,0 +1,8 @@
+# Candidate D for measurement 5: candidate A plus a model catalog in which every
+# model has shell_type = "disabled" and no apply_patch_tool_type. The runner
+# writes that catalog from `codex debug models` before the candidate runs.
+model_catalog_json = "/tmp/chr-gate-spike/codex/catalog-no-builtins.json"
+
+[features]
+shell_tool = false
+unified_exec = false

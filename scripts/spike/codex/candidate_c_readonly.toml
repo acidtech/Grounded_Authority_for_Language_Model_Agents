@@ -1,0 +1,7 @@
+# Candidate C for measurement 5: candidate A plus a read-only sandbox, which
+# does not remove apply_patch but should make every built-in write fail.
+sandbox_mode = "read-only"
+
+[features]
+shell_tool = false
+unified_exec = false

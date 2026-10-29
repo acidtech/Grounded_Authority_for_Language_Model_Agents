@@ -1,0 +1,14 @@
+{
+  "fbf48d06-09ce-4619-b4c1-bd398be0e595": {
+    "epoch": 1,
+    "gate": null,
+    "governs": "WO-9a382bf7",
+    "witness_binding": {
+      "epoch": 1,
+      "frame": "fbf48d06-09ce-4619-b4c1-bd398be0e595",
+      "version": 1,
+      "work_order": "WO-9a382bf7"
+    },
+    "witness_sha256": "ab4df562debcb3135970152a15d38782da5b7a26fda0ad36c74e80be56866b99"
+  }
+}

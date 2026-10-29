@@ -1,0 +1,38 @@
+moved previous /tmp/chr-gate-smoke/codex-proj to /tmp/chr-gate-smoke/codex-proj.prev.20261029T140831Z
+moved previous /tmp/chr-gate-smoke/codex-state to /tmp/chr-gate-smoke/codex-state.prev.20261029T140831Z
+moved previous /tmp/chr-gate-smoke/codex-streams to /tmp/chr-gate-smoke/codex-streams.prev.20261029T140831Z
+moved previous /tmp/chr-gate-smoke/codex-session.txt to /tmp/chr-gate-smoke/codex-session.txt.prev.20261029T140831Z
+moved previous /tmp/chr-gate-smoke/codex-version.txt to /tmp/chr-gate-smoke/codex-version.txt.prev.20261029T140831Z
+created /tmp/chr-gate-smoke/codex-proj/.claude
+created /tmp/chr-gate-smoke/codex-proj/.codex
+created /tmp/chr-gate-smoke/codex-proj/.mcp.json
+Marketplace `chr-gate-local` is already added from /home/acidtech/Ground_Authority_for_Language_Model_Agents/plugins/codex.
+Installed marketplace root: /home/acidtech/Ground_Authority_for_Language_Model_Agents/plugins/codex
+Added plugin `chr-gate` from marketplace `chr-gate-local`.
+Installed plugin root: /home/acidtech/.codex/plugins/cache/chr-gate-local/chr-gate/0.1.0
+pre-flight: MCP server 'chr-gate' (pluginId chr-gate@chr-gate-local) lists 11 tools
+pre-flight: sandbox_mode = 'read-only'
+pre-flight: features.shell_tool = False
+turn 1-propose ...
+turn 2-approve ...
+turn 3-wrong-witness ...
+turn 4-status-open ...
+turn 5-parallel-writes ...
+turn 6-builtin-write ...
+
+smoke check (codex):
+1. PASS  proposal recorded: P-e9e94ac4 stored; its text names a.txt, b.txt
+2. PASS  activation of exactly the proposed text: P-e9e94ac4 activated as wo:WO-552f0308.v1 with exactly the proposed text
+3. PASS  wrong witness refused with 'read your work order': open_gate refused for frame 01a187fd-b758-7211-acb3-e4eca75e54b4; the server returns 'read your work order' for this outcome
+4. PASS  correct witness passed and the full text returned: status then open_gate passed for frame 01a187fd-b758-7211-acb3-e4eca75e54b4 (G-89981cd044164701); open_gate returns the full text of wo:WO-552f0308.v1
+5. PASS  two write_file calls in one batch, both with claims, both files right: one batch under G-89981cd044164701 took 2 calls; 2 claims accepted, 2 write_file calls; a.txt, b.txt hold the expected content
+6. PASS  built-in write denied and c.txt absent: c.txt absent: the built-in write (apply_patch or shell) was denied by host config or the hook (the step 6 stream shows which)
+INFO: no refused-not-mediated or hook_error events
+INFO: frame ids in events.jsonl: 01a187fd-b758-7211-acb3-e4eca75e54b4
+INFO: host session id 01a187fd-b758-7211-acb3-e4eca75e54b4: is a frame id in events.jsonl
+RESULT: 6/6 PASS
+outputs: /tmp/chr-gate-smoke/codex-proj /tmp/chr-gate-smoke/codex-state /tmp/chr-gate-smoke/codex-streams /tmp/chr-gate-smoke/codex-version.txt /tmp/chr-gate-smoke/codex-session.txt
+
+To remove the chr-gate Codex plugin:
+  codex plugin remove chr-gate@chr-gate-local
+  codex plugin marketplace remove chr-gate-local

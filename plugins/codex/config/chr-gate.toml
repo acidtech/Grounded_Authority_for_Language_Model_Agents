@@ -1,0 +1,16 @@
+# chr-gate config fragment for Codex (codex-cli 0.162.1). A plugin cannot set
+# these keys itself: merge them from your own shell. Codex reads a project's
+# .codex/config.toml only when that project is trusted in your user Codex
+# config, so merge the keys into ~/.codex/config.toml, or trust the governed
+# project and merge them into its .codex/config.toml.
+#
+# sandbox_mode = "read-only" is the backstop: a built-in write that slips past
+# the hooks fails in the sandbox. features.shell_tool = false switches off the
+# built-in shell (docs/spike-findings.md item 5). features.unified_exec = false
+# is accepted but has no effect in 0.162.1 (the recorded feature lists still
+# show it true), and apply_patch has no working switch; the chr-gate
+# PreToolUse hook denies both.
+sandbox_mode = "read-only"
+
+[features]
+shell_tool = false

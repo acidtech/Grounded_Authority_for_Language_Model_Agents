@@ -1,0 +1,27 @@
+moved previous /tmp/chr-gate-smoke/claude-code-proj to /tmp/chr-gate-smoke/claude-code-proj.prev.20261029T130152Z
+moved previous /tmp/chr-gate-smoke/claude-code-state to /tmp/chr-gate-smoke/claude-code-state.prev.20261029T130152Z
+moved previous /tmp/chr-gate-smoke/claude-code-streams to /tmp/chr-gate-smoke/claude-code-streams.prev.20261029T130152Z
+moved previous /tmp/chr-gate-smoke/claude-code-session.txt to /tmp/chr-gate-smoke/claude-code-session.txt.prev.20261029T130152Z
+moved previous /tmp/chr-gate-smoke/claude-code-version.txt to /tmp/chr-gate-smoke/claude-code-version.txt.prev.20261029T130152Z
+created /tmp/chr-gate-smoke/claude-code-proj/.claude
+created /tmp/chr-gate-smoke/claude-code-proj/.codex
+created /tmp/chr-gate-smoke/claude-code-proj/.mcp.json
+turn 1-propose ...
+turn 2-approve ...
+turn 3-wrong-witness ...
+turn 4-status-open ...
+turn 5-parallel-writes ...
+turn 6-builtin-write ...
+
+smoke check (claude-code):
+1. PASS  proposal recorded: P-7fcda509 stored; its text names a.txt, b.txt
+2. PASS  activation of exactly the proposed text: P-7fcda509 activated as wo:WO-9a382bf7.v1 with exactly the proposed text
+3. PASS  wrong witness refused with 'read your work order': open_gate refused for frame fbf48d06-09ce-4619-b4c1-bd398be0e595; the server returns 'read your work order' for this outcome
+4. PASS  correct witness passed and the full text returned: status then open_gate passed for frame fbf48d06-09ce-4619-b4c1-bd398be0e595 (G-f817110ef9d5ab44); open_gate returns the full text of wo:WO-9a382bf7.v1
+5. PASS  two write_file calls in one batch, both with claims, both files right: one batch under G-f817110ef9d5ab44 took 2 calls; 2 claims accepted, 2 write_file calls; a.txt, b.txt hold the expected content
+6. PASS  built-in write denied and c.txt absent: c.txt absent: the built-in write (Write) was denied by host config or the hook (the step 6 stream shows which)
+INFO: no refused-not-mediated or hook_error events
+INFO: frame ids in events.jsonl: fbf48d06-09ce-4619-b4c1-bd398be0e595
+INFO: host session id fbf48d06-09ce-4619-b4c1-bd398be0e595: is a frame id in events.jsonl
+RESULT: 6/6 PASS
+outputs: /tmp/chr-gate-smoke/claude-code-proj /tmp/chr-gate-smoke/claude-code-state /tmp/chr-gate-smoke/claude-code-streams /tmp/chr-gate-smoke/claude-code-version.txt /tmp/chr-gate-smoke/claude-code-session.txt

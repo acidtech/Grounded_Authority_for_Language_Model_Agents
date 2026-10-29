@@ -1,0 +1,12 @@
+{
+  "name": "chr-gate",
+  "version": "0.1.0",
+  "description": "Example CHR gate (C32 Appendix A): every action with an external effect goes through the chr-gate MCP server under an approved work order, an open gate and a written claim.",
+  "author": {
+    "name": "Nathan Scherdin",
+    "email": "nathan@basicmicro.com"
+  },
+  "homepage": "https://github.com/acidtech/Grounded_Authority_for_Language_Model_Agents",
+  "repository": "https://github.com/acidtech/Grounded_Authority_for_Language_Model_Agents",
+  "license": "PolyForm-Noncommercial-1.0.0"
+}

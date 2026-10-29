@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "chr-gate": {
+      "command": "chrgate-mcp",
+      "args": [],
+      "env_vars": ["XDG_STATE_HOME", "CHR_GATE_PROJECT"],
+      "default_tools_approval_mode": "approve"
+    }
+  }
+}

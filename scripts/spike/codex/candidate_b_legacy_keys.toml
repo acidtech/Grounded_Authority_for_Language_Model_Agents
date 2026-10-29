@@ -1,0 +1,10 @@
+# Candidate B for measurement 5: candidate A plus the accepted (strict-config)
+# keys that might remove the unified exec tool or the freeform apply_patch.
+# include_apply_patch_tool, tools.apply_patch and apply_patch_tool_type are
+# rejected by codex 0.162.1 as unknown fields, so they are not tried.
+experimental_use_unified_exec_tool = false
+
+[features]
+shell_tool = false
+unified_exec = false
+apply_patch_freeform = false

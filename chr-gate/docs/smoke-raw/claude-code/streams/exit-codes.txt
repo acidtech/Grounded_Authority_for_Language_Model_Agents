@@ -1,0 +1,6 @@
+1-propose exit=0
+2-approve exit=0
+3-wrong-witness exit=0
+4-status-open exit=0
+5-parallel-writes exit=0
+6-builtin-write exit=0

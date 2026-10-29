@@ -1,0 +1,7 @@
+{"type":"thread.started","thread_id":"01a187fd-b758-7211-acb3-e4eca75e54b4"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I’ll try the built-in `apply_patch` once and report the result without retrying."}}
+{"type":"item.completed","item":{"id":"item_3","type":"agent_message","text":"`apply_patch` was denied by the PreToolUse hook: “chr-gate: the built-in tool apply_patch is disabled in this project; make changes through the chr-gate MCP tools (write_file, edit_file, mutate_shell after open_gate; research_shell to read).”\n\nNo retry was made."}}
+{"type":"turn.completed","usage":{"input_tokens":287027,"cached_input_tokens":258816,"cache_write_input_tokens":0,"output_tokens":1791,"reasoning_output_tokens":466}}

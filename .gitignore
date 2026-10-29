@@ -4,3 +4,7 @@ logs/
 review/
 Grounded_Authority_for_Language_Model_Agents_C31.md
 The_Wrong_Defendant_Combined.mp4
+*:Zone.Identifier
+The_Wrong_Defendant_thumbnail.*
+tmp/
+__pycache__/

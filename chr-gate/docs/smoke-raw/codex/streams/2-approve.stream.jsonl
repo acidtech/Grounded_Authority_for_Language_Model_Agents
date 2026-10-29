@@ -1,0 +1,8 @@
+{"type":"thread.started","thread_id":"01a187fd-b758-7211-acb3-e4eca75e54b4"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.started","item":{"id":"item_2","type":"mcp_tool_call","server":"chr-gate","tool":"read_work_order","arguments":{},"result":null,"error":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_2","type":"mcp_tool_call","server":"chr-gate","tool":"read_work_order","arguments":{},"result":{"content":[{"type":"text","text":"work order wo:WO-552f0308.v1\nwitness: wit:d3f84f63e29cefd2ab0ceb1a8fbb6ec2\nCall open_gate with this witness, then cite wo:WO-552f0308.v1 in the claim of each consequential call.\n--- work order text ---\nCreate a.txt containing exactly 'chr-gate smoke alpha' and b.txt containing exactly 'chr-gate smoke bravo' in the project root with the chr-gate write_file tool.\n\nchr-gate context nonce: ctx:1cddfab259fe0362"}],"structured_content":null},"error":null,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_3","type":"agent_message","text":"OK."}}
+{"type":"turn.completed","usage":{"input_tokens":60211,"cached_input_tokens":53120,"cache_write_input_tokens":0,"output_tokens":276,"reasoning_output_tokens":0}}

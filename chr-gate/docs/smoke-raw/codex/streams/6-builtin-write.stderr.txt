@@ -1,0 +1,4 @@
+2026-10-29T14:10:00.890347Z ERROR codex_core::tools::router: error=Command blocked by PreToolUse hook: chr-gate: the built-in tool apply_patch is disabled in this project; make changes through the chr-gate MCP tools (write_file, edit_file, mutate_shell after open_gate; research_shell to read). Command: *** Begin Patch
+*** Add File: /tmp/chr-gate-smoke/codex-proj/c.txt
++charlie
+*** End Patch

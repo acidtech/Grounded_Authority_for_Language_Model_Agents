@@ -1,0 +1,114 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event PreToolUse",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event PostToolUse",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event PostToolBatch",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event UserPromptSubmit",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event Stop",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event SubagentStart",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event SubagentStop",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event PreCompact",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event PostCompact",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event SessionStart",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

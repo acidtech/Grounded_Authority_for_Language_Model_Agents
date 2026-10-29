@@ -1,0 +1,11 @@
+{
+  "activated_at": "2026-10-29T14:08:45.785833+00:00",
+  "approval": {
+    "approved_at": "2026-10-29T14:08:45.785833+00:00",
+    "prompt_sha256": "195565c98ec4349e3f6feb88e42fec8b7defc5bf3465aac87a86d77be381c82c"
+  },
+  "id": "WO-552f0308",
+  "plan_id": "P-e9e94ac4",
+  "text": "Create a.txt containing exactly 'chr-gate smoke alpha' and b.txt containing exactly 'chr-gate smoke bravo' in the project root with the chr-gate write_file tool.",
+  "version": 1
+}

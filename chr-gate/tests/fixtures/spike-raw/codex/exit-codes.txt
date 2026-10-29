@@ -1,0 +1,11 @@
+m1_parallel exit=0
+m2_turns exit=0
+m3_subagent exit=0
+m4_builtin_write exit=0
+m6_one_cell exit=0
+m1_parallel_nocode exit=0
+m2_turns_nocode exit=0
+m5_candidate_a_features exit=0
+m5_candidate_b_legacy_keys exit=0
+m5_candidate_c_readonly exit=0
+m5_candidate_d_catalog exit=0

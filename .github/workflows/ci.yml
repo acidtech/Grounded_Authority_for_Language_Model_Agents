@@ -1,0 +1,47 @@
+# CI for chr-gate: runs the unit suite (scripts/unit_suite.sh) on Python 3.12
+# and 3.14 under bubblewrap.
+#
+# This workflow has never run. It was validated only statically (actionlint and
+# a YAML structure read); its first run is the first push to GitHub, which is
+# the user's step.
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.12', '3.14']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        id: py
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.7.21'
+
+      - name: Install bubblewrap
+        run: sudo apt-get update && sudo apt-get install -y bubblewrap
+
+      # Ubuntu 24.04 otherwise blocks bwrap's unprivileged user namespaces.
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Sync environment
+        run: cd chr-gate && uv sync --frozen --python "${{ steps.py.outputs.python-path }}"
+
+      - name: Unit suite
+        run: scripts/unit_suite.sh

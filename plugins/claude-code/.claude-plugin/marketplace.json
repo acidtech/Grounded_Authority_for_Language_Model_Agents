@@ -1,0 +1,14 @@
+{
+  "name": "chr-gate-local",
+  "owner": {
+    "name": "acidtech"
+  },
+  "description": "Local marketplace for the example chr-gate plugin",
+  "plugins": [
+    {
+      "name": "chr-gate",
+      "source": "./",
+      "description": "Example CHR gate: consequential actions only through the chr-gate MCP server"
+    }
+  ]
+}

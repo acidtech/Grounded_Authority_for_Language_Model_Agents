@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "chr-gate": {
+      "command": "chrgate-mcp",
+      "args": []
+    }
+  }
+}

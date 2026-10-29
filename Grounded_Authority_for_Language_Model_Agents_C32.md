@@ -4,7 +4,9 @@ Oct 27, 2026 · Nathan Scherdin
 
 *Context provenance, warning feedback and enforced action gates for language-model workers* · Draft · Engineering design document · Nathan Scherdin
 
-Disclosure: A patent application is pending. Building it yourself for non-commercial or research use is welcome; Commercial use will need a license if the patent issues.
+Disclosure: Patent applications are pending. Non-commercial and research use is permitted under the license (see LICENSE.md); any commercial use requires a separately negotiated license (see COMMERCIAL-LICENSE.md).
+
+License: Copyright (c) 2026 Nathan Scherdin. This document is licensed under CC BY-NC-ND 4.0 (https://creativecommons.org/licenses/by-nc-nd/4.0/), with an additional permission for non-commercial translations; see LICENSE.md. Any commercial use requires a separately negotiated license; see COMMERCIAL-LICENSE.md.
 
 ## The problem: When the work order moves
 
@@ -382,7 +384,7 @@ The canonical authorization error is fictional. In *The Hitchhiker's Guide to th
 
 ## 4. Worked example: a motor soft-start
 
-One run, one epoch, one witness. The governed read establishes availability; each gate opening checks worker-generated proof. Resurfacing prompts reconsideration of an intended edit, an injected email is refused as authority, and a needed scope change goes to the principal. Durable record IDs are written `rec:`; the witness is written `wit:`.
+One run, one epoch, one witness. The governed read establishes availability; each gate opening checks worker-generated proof. Resurfacing prompts reconsideration of an intended edit, an injected email is refused as authority, and a needed scope change goes to the principal. Durable record IDs are written `rec:`; the witness is written `wit:`. The calls are shorthand; Appendix B gives the reference signatures.
 
 The epoch begins with the harness-performed bootstrap:
 
@@ -405,7 +407,7 @@ The last clause is a plan-level evidence obligation. The shell path cannot deriv
 Forty turns in, the worker has implemented `ramp()`, written tests and fixed a timing issue, opening a fresh gate with `wit:2a9e…` before each change. After several research turns its shorthand has become "make the motor start smoothly", a reasonable restatement that has quietly lost the loader prohibition. It considers editing the loader. It reads the loader as `rec:5c1d8e2f9a7b0346` and opens a gate:
 
 ```text
-open_gate(witness="wit:2a9e4c71d0b3f685", evidence=["rec:5c1d8e2f9a7b0346"])
+open_gate(witness="wit:2a9e4c71d0b3f685", evidence_ids=["rec:5c1d8e2f9a7b0346"])
 -> OPEN for the next consequential action; witness unchanged
    Authority (resurfaced): rec:7f3a9c1e2b4d6058  [full approved plan v1]
    Evidence:               rec:5c1d8e2f9a7b0346  [complete loader.py observation]
@@ -414,7 +416,7 @@ open_gate(witness="wit:2a9e4c71d0b3f685", evidence=["rec:5c1d8e2f9a7b0346"])
 The prohibition arrives in the opening result. This example uses a policy that permits research before the consequential action. It cannot honestly claim the plan permits a loader edit, so it investigates a permitted change in `/src/motor/ramp.py`, reading it as `rec:9e4b7c21f05da863`. Evidence read after an opening needs a new opening:
 
 ```text
-open_gate(witness="wit:2a9e4c71d0b3f685", evidence=["rec:9e4b7c21f05da863"])
+open_gate(witness="wit:2a9e4c71d0b3f685", evidence_ids=["rec:9e4b7c21f05da863"])
 -> OPEN; previous pending gate replaced; authority and evidence resurfaced
 
 batch(
@@ -452,7 +454,7 @@ No witness was ever issued for the email, so nothing it says can open a gate or 
 The worker reads `/src/motor/ramp.py` as `rec:91c2d4e07a3b5f16` and opens a gate with it. One `bash_mutate` call is one consequential action, however many files it touches. Its derived evidence floor is zero. The plan's read-before-editing clause is the only obligation, met by citing `rec:91c2…` at the opening.
 
 ```text
-open_gate(witness="wit:2a9e4c71d0b3f685", evidence=["rec:91c2d4e07a3b5f16"])
+open_gate(witness="wit:2a9e4c71d0b3f685", evidence_ids=["rec:91c2d4e07a3b5f16"])
 -> OPEN; authority and evidence resurfaced
 
 batch(
@@ -753,7 +755,7 @@ Trusted prompting, constraint pinning and the mandatory read are legitimate desi
 
 **Memory, programming and durable execution.** Context virtualization such as MemGPT [Packer et al.], DSPy signatures [Khattab et al.], event sourcing [Fowler] and durable execution [Temporal] are the neighbors of the companion documents, which discuss them.
 
-**Citations are necessary, not sufficient.** In May 2026 a Munich regional court issued a preliminary injunction holding Google directly liable for AI Overview statements whose linked sources did not support them; Google announced an appeal [RSF; dpa]. The case was later reported to have ended in a settlement, with no appeal decision [The Decoder]; the point here is the failure itself. A genuine citation passes an identity check even when it names a different company. This is why claims are reviewed for content and never accepted as true by the harness.
+**Citations are necessary, not sufficient.** In May 2026 a Munich regional court issued a preliminary injunction holding Google directly liable for AI Overview statements whose linked sources did not support them; Google announced an appeal [RSF; dpa; Munich Regional Court]. The case was later reported to have ended in a settlement, with no appeal decision [The Decoder]; the point here is the failure itself. A genuine citation passes an identity check even when it names a different company. This is why claims are reviewed for content and never accepted as true by the harness.
 
 ## 8. Evaluation plan and open questions
 
@@ -1484,7 +1486,9 @@ The general requirement is a worker-produced response validated against protecte
 
 This document is the engineering reference for the CHR authority gate and its reference harness. It specifies the shared context-provenance validator underlying ordinary provenance warnings and authority gating, the bound witness, context-invalidation rules and configurable gate timing, and Section 9 sets out what a fixed reference makes manageable for stochastic workers, with Experiments 17–22 to test it. The minimal warning profile reports an invalid context citation to the worker; the authority profile requires the approved source and blocks consequential actions on failed validation. The preferred harness also requires an action-specific claim before generation of its dependent action payload; that ordering is a specified addition, distinct from the historical field record. Section 5 distinguishes deployed behavior from specified additions. Variants are in Appendix F; open questions and historical verification tasks are in Section 8.5 and Appendix H.
 
-Disclosure: A patent application is pending. Building it yourself for non-commercial or research use is welcome; Commercial use will need a license if the patent issues.
+Disclosure: Patent applications are pending. Non-commercial and research use is permitted under the license (see LICENSE.md); any commercial use requires a separately negotiated license (see COMMERCIAL-LICENSE.md).
+
+License: Copyright (c) 2026 Nathan Scherdin. This document is licensed under CC BY-NC-ND 4.0 (https://creativecommons.org/licenses/by-nc-nd/4.0/), with an additional permission for non-commercial translations; see LICENSE.md. Any commercial use requires a separately negotiated license; see COMMERCIAL-LICENSE.md.
 
 **Origin.** The CHR gate originates in the author's earlier work.
 
@@ -1494,6 +1498,7 @@ Disclosure: A patent application is pending. Building it yourself for non-commer
 | --- | --- | --- |
 | Core (this document) | Authority drift, shared context-provenance validation, warning and gate profiles, correctness layers, field record, what a fixed reference makes manageable, evaluation, protocols, tests | Draft |
 | *The Wrong Defendant* (v2.2) | Rationale: why authority must be held outside the worker; systemic versus AI-specific threats; falsifiable test | Working paper |
+| *Implementing a Grounded Authority Harness* | Building a harness from this document in stages | Draft |
 | Companion A: Operating environment | Extended provenance feedback, durable state, citation-indexed context reconstruction, scratchpad waypoints | Earlier draft; not updated |
 | Companion B: Authority programming | Plan programs, delegation, budgets, structured authorities with header and chunks | Earlier draft; not updated |
 | Companion C: Cited reasoning operations | Modular, replayable reasoning records | Proposed |

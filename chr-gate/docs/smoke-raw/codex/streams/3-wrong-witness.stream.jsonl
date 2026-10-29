@@ -1,0 +1,9 @@
+{"type":"thread.started","thread_id":"01a187fd-b758-7211-acb3-e4eca75e54b4"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I’ll call `open_gate` with the deliberately wrong witness and return its exact result text."}}
+{"type":"item.started","item":{"id":"item_3","type":"mcp_tool_call","server":"chr-gate","tool":"open_gate","arguments":{"witness":"wit:00000000000000000000000000000000"},"result":null,"error":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_3","type":"mcp_tool_call","server":"chr-gate","tool":"open_gate","arguments":{"witness":"wit:00000000000000000000000000000000"},"result":{"content":[{"type":"text","text":"read your work order\n\nchr-gate context nonce: ctx:32a1741aa51279d1"}],"structured_content":null},"error":null,"status":"failed"}}
+{"type":"item.completed","item":{"id":"item_4","type":"agent_message","text":"read your work order\n\nchr-gate context nonce: ctx:32a1741aa51279d1"}}
+{"type":"turn.completed","usage":{"input_tokens":92702,"cached_input_tokens":85120,"cache_write_input_tokens":0,"output_tokens":594,"reasoning_output_tokens":155}}

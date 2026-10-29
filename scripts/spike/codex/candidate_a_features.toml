@@ -1,0 +1,5 @@
+# Candidate A for measurement 5: switch off the shell feature flags
+# (codex features list shows shell_tool and unified_exec as stable/true).
+[features]
+shell_tool = false
+unified_exec = false
