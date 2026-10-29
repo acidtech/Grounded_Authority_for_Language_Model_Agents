@@ -1493,7 +1493,7 @@ Disclosure: A patent application is pending. Building it yourself for non-commer
 | Document | Covers | Status |
 | --- | --- | --- |
 | Core (this document) | Authority drift, shared context-provenance validation, warning and gate profiles, correctness layers, field record, what a fixed reference makes manageable, evaluation, protocols, tests | Draft |
-| *The Wrong Defendant* (v2.1) | Rationale: why authority must be held outside the worker; systemic versus AI-specific threats; falsifiable test | Working paper |
+| *The Wrong Defendant* (v2.2) | Rationale: why authority must be held outside the worker; systemic versus AI-specific threats; falsifiable test | Working paper |
 | Companion A: Operating environment | Extended provenance feedback, durable state, citation-indexed context reconstruction, scratchpad waypoints | Earlier draft; not updated |
 | Companion B: Authority programming | Plan programs, delegation, budgets, structured authorities with header and chunks | Earlier draft; not updated |
 | Companion C: Cited reasoning operations | Modular, replayable reasoning records | Proposed |
@@ -1553,7 +1553,7 @@ End by stating what evidence would change your assessment.
 
 **Rationale**
 
-- Scherdin, N. [The Wrong Defendant: Artificial Intelligence Maligned by a Governance Design Failure](https://github.com/acidtech/Grounded_Authority_for_Language_Model_Agents/blob/main/The_Wrong_Defendant_AI_Governance_Failure_v2_1.md). Working paper, Version 2.1, October 27, 2026.
+- Scherdin, N. [The Wrong Defendant: Artificial Intelligence Maligned by a Governance Design Failure](https://github.com/acidtech/Grounded_Authority_for_Language_Model_Agents/blob/main/The_Wrong_Defendant_AI_Governance_Failure_v2_2.md). Working paper, Version 2.2, October 28, 2026.
 
 **Serial reproduction, iterated learning and information**
 
