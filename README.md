@@ -5,6 +5,9 @@ language-model workers. This repository holds the design, an implementation
 guide, the essay that argues for the approach, and an example gate for two
 coding-agent hosts.
 
+Video overview: [The Wrong Defendant: AI Agents, Authority Drift, and the Work
+Order Nobody Signed](https://youtu.be/ObYBY2l19e4)
+
 ## Contents
 
 - [Grounded_Authority_for_Language_Model_Agents_C32.md](Grounded_Authority_for_Language_Model_Agents_C32.md)
