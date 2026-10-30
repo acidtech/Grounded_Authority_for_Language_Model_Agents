@@ -1,5 +1,6 @@
 """Regression test for fragment_pairs.py (T5b): it prints the bare -c pairs
-smoke_codex.sh passes for plugins/codex/config/chr-gate.toml.
+smoke_codex.sh passes for plugins/codex/config/chr-gate.toml, and smoke_codex.sh
+passes those bare pairs (not the -c expanded C_ARGS) to codex_preflight.py.
 
 Run as: cd chr-gate && uv run --frozen --no-sync pytest -q -p no:cacheprovider \
 ../scripts/smoke/test_codex_preflight.py ../scripts/smoke/test_fragment_pairs.py
@@ -26,3 +27,32 @@ def test_fragment_pairs_matches_smoke():
     text = (SMOKE_DIR / "smoke_codex.sh").read_text()
     assert call in text
     assert "tomllib" not in text
+
+
+PREFLIGHT_CALL = '"$REPO/scripts/smoke/codex_preflight.py" "$PROJ" "${PAIRS[@]}"'
+
+
+def _preflight_call_problems(text):
+    """Problems with smoke_codex.sh's codex_preflight.py call; empty when good."""
+    calls = [line for line in text.splitlines()
+             if "codex_preflight.py" in line and not line.lstrip().startswith("#")]
+    if len(calls) != 1:
+        return [f"expected 1 codex_preflight.py call line, found {len(calls)}: {calls}"]
+    problems = []
+    if PREFLIGHT_CALL not in calls[0]:
+        problems.append(f"call line lacks {PREFLIGHT_CALL}: {calls[0]}")
+    if "C_ARGS" in calls[0]:
+        problems.append(f"call line passes C_ARGS: {calls[0]}")
+    return problems
+
+
+def test_preflight_call_passes_bare_pairs():
+    text = (SMOKE_DIR / "smoke_codex.sh").read_text()
+    assert _preflight_call_problems(text) == []
+    # Self-check: the helper flags a call switched to C_ARGS and a deleted call.
+    c_args = text.replace(PREFLIGHT_CALL, PREFLIGHT_CALL.replace('"${PAIRS[@]}"', '"${C_ARGS[@]}"'))
+    assert c_args != text
+    assert _preflight_call_problems(c_args)
+    deleted = "\n".join(line for line in text.splitlines() if PREFLIGHT_CALL not in line)
+    assert deleted != text
+    assert _preflight_call_problems(deleted)
