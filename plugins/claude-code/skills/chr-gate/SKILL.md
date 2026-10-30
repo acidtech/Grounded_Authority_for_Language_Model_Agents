@@ -102,5 +102,8 @@ web tools for web research.
   `chrgate-setup` never creates it.
 - "read your work order" or another gate refusal: go back to step 1 of the gate
   sequence.
+- "did not ticket this Claude Code call": the plugin's PreToolUse hook did not
+  ticket the call, so the plugin's hooks are not running for this project.
+  Tell the user; do not retry.
 - "not mediated": the call did not pass the chr-gate hook, so the plugin's
   hooks are not running. Tell the user; do not retry.

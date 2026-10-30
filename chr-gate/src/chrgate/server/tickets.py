@@ -14,9 +14,14 @@ tells it differently.
   _meta["x-codex-turn-metadata"].parent_thread_id. A Codex call (client name
   codex*, or any Codex _meta key) without threadId or itemId is refused,
   fail closed.
-- Anything else, and a Claude Code call without a matching ticket: the root
-  session frame (CLAUDE_CODE_SESSION_ID when set, else "root"), no turn key,
-  not mediated. tools.py refuses a consequential call that is not mediated.
+- A Claude Code call (non-empty claudecode/toolUseId) without a ticket naming
+  its tool is refused (claude-no-ticket), fail closed. Like the Codex refusal
+  it is recorded on root_frame(), because the server env
+  CLAUDE_CODE_SESSION_ID is not the session's frame after /clear or --resume
+  (bug 327e55).
+- Anything else (no host identity): the root session frame
+  (CLAUDE_CODE_SESSION_ID when set, else "root"), no turn key, not mediated.
+  tools.py refuses a consequential call that is not mediated.
 """
 
 import os
@@ -36,6 +41,7 @@ CODEX_CLIENT_PREFIX = "codex"
 ROOT_FRAME_ENV = "CLAUDE_CODE_SESSION_ID"
 ROOT_FRAME = "root"
 CODEX_NO_ITEM_ID = "codex-no-item-id"
+CLAUDE_NO_TICKET = "claude-no-ticket"
 
 
 class AttributionRefused(Exception):
@@ -124,5 +130,9 @@ def attribute(store: Store, tool: str, meta: dict[str, Any] | None,
             agent = ticket["agent_id"]
             return Caller(CLAUDE, agent or ticket["session_id"], ticket["turn_key"],
                           mediated=True, subagent=agent is not None)
-        return Caller(CLAUDE, root_frame(), None, mediated=False, subagent=False)
+        raise AttributionRefused(
+            CLAUDE_NO_TICKET, f"{tool} refused: the chr-gate PreToolUse hook did not ticket this "
+            f"Claude Code call (no ticket names {tool} under its claudecode/toolUseId); the "
+            "chr-gate plugin hooks must be installed and enabled for this project; refused, "
+            "fail closed", root_frame())
     return Caller(NO_HOST, root_frame(), None, mediated=False, subagent=False)

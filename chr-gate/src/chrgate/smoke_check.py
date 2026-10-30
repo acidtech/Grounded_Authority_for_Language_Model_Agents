@@ -7,11 +7,11 @@ it also runs against copied outputs), reads the state files beside it
 prints PASS or FAIL for each of the six smoke steps. Exit 0 only when all six
 pass, 1 when any fails, 2 when the inputs cannot be checked at all.
 
-INFO lines are diagnostics and never change the exit code: events with
-outcome refused-not-mediated or kind hook_error (the symptom of a tool-name
-prefix mismatch between host and hooks), and the frame ids seen in
-events.jsonl next to the host session ids the smoke script saved in
-HOST-session.txt beside STATE.
+INFO lines are diagnostics and never change the exit code: one line per event
+with outcome refused-claude-no-ticket or refused-not-mediated or kind
+hook_error, naming the attempted tool (or the hook error), the code and its
+meaning, and the frame; and the frame ids seen in events.jsonl next to the
+host session ids the smoke script saved in HOST-session.txt beside STATE.
 """
 
 import argparse
@@ -25,6 +25,7 @@ from typing import Any
 
 from chrgate.core import claims, events, gate, workorder
 from chrgate.hooks.adapters import claude_code, codex
+from chrgate.server import tickets
 
 HOSTS = (claude_code.HOST, codex.HOST)
 EXPECTED_FILES = {"a.txt": "chr-gate smoke alpha", "b.txt": "chr-gate smoke bravo"}
@@ -33,8 +34,15 @@ BUILTIN_TOOL = {claude_code.HOST: "Write", codex.HOST: "apply_patch or shell"}
 SAME_BATCH = "taken-same-batch"     # gate.take_gate outcome for the later calls of one batch
 WRITE_OK = ("tool:write_file", "ok")  # GateServer.call event of an effective write_file
 READ_OUTCOMES = ("issued", "reused")  # WitnessIssuer.read_work_order outcomes
+NO_TICKET = "refused-" + tickets.CLAUDE_NO_TICKET
 NOT_MEDIATED = "refused-not-mediated"
 HOOK_ERROR = "hook_error"
+REFUSAL_MEANING = {
+    NO_TICKET.removeprefix("refused-"):
+        "no PreToolUse ticket for this call, the chr-gate hook did not run for it",
+    NOT_MEDIATED.removeprefix("refused-"):
+        "no PreToolUse ticket names this call, which carried no Claude Code or Codex identity",
+}
 SESSION_FILE = "{host}-session.txt"
 
 
@@ -209,14 +217,22 @@ STEPS: tuple[tuple[str, Callable[[Run, str], Result]], ...] = (
 def info_lines(run: Run, state: Path, host: str) -> list[str]:
     """Diagnostics only; they never change the exit code."""
     out = []
-    odd = [e for e in run.events if e["outcome"] == NOT_MEDIATED or e["kind"] == HOOK_ERROR]
+    odd = [e for e in run.events
+           if e["outcome"] in (NO_TICKET, NOT_MEDIATED) or e["kind"] == HOOK_ERROR]
     if odd:
-        out.append(f"INFO: {len(odd)} {NOT_MEDIATED}/{HOOK_ERROR} event(s), the symptom of a "
-                   "tool-name prefix mismatch:")
-        out += [f"INFO:   {e['time']} frame={e['frame']} kind={e['kind']} outcome={e['outcome']}"
-                for e in odd]
+        out.append(f"INFO: {len(odd)} refused or failed hook event(s):")
     else:
-        out.append(f"INFO: no {NOT_MEDIATED} or {HOOK_ERROR} events")
+        out.append(f"INFO: no {NO_TICKET}, {NOT_MEDIATED} or {HOOK_ERROR} events")
+    for e in odd:
+        if e["kind"] == HOOK_ERROR:
+            error = e["outcome"].removeprefix("error-")
+            out.append(f"INFO:   {e['time']} hook failed ({HOOK_ERROR}, {e['outcome']}): the "
+                       f"chr-gate hook raised {error}, it denies consequential chr-gate tools and "
+                       f"built-in writes on an error and allows the rest; frame={e['frame']}")
+        else:
+            tool, code = e["kind"].removeprefix("tool:"), e["outcome"].removeprefix("refused-")
+            out.append(f"INFO:   {e['time']} {tool} call refused ({code}): "
+                       f"{REFUSAL_MEANING[code]}; frame={e['frame']}")
     frames = sorted({e["frame"] for e in run.events if e["frame"] is not None})
     out.append("INFO: frame ids in events.jsonl: " + (", ".join(frames) or "none"))
     session = state.parent / SESSION_FILE.format(host=host)

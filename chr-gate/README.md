@@ -374,8 +374,10 @@ work order again.
 
 Frame attribution relies on the hook ticket on Claude Code (PreToolUse writes
 the frame under the `tool_use_id`, which the server matches against
-`_meta["claudecode/toolUseId"]`; a consequential call with no ticket is
-refused as not mediated) and, on Codex, on the `_meta` fields the host sends
+`_meta["claudecode/toolUseId"]`; a Claude Code call whose `toolUseId` has no
+ticket naming its tool is refused (`claude-no-ticket`), whatever the tool, and
+a consequential call with no host identity at all is refused as not mediated)
+and, on Codex, on the `_meta` fields the host sends
 (`threadId`, `parent_thread_id`, `itemId`), which the server takes as sent
 (spike-findings item 3).
 

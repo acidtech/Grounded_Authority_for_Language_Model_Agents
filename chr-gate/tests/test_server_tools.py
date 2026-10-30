@@ -164,7 +164,9 @@ def test_unticketed_consequential_call_refused(server, active_wo, project):
     opened(call)
     args = {"claim": claim(active_wo.ref), "path": "a.txt", "content": "x"}
     out = call("write_file", args, ticket=False)
-    assert out.is_error and "not mediated" in out.text
+    assert out.is_error and "did not ticket this Claude Code call" in out.text
+    last = [e for e in events.read_all(server.store) if e["kind"].startswith("tool:")][-1]
+    assert last["outcome"] == "refused-" + tickets.CLAUDE_NO_TICKET
     out = server.call("write_file", args)
     assert out.is_error and "not mediated" in out.text
     assert not (project / "a.txt").exists()
@@ -341,14 +343,52 @@ def test_claude_ticket_matched_by_tool_use_id(server, active_wo, project):
     meta = {tickets.CLAUDE_TOOL_USE_ID: "toolu_X"}
     assert not server.call("write_file", args, meta).is_error
     out = server.call("write_file", {**args, "path": "b.txt"}, meta)  # ticket consumed
-    assert out.is_error and "not mediated" in out.text
+    assert out.is_error and "did not ticket this Claude Code call" in out.text
     tickets.put_ticket(server.store, "toolu_Y", tool="status", session_id=SESSION,
                        turn_key="batch-1")
     out = server.call("write_file", {**args, "path": "b.txt"}, {tickets.CLAUDE_TOOL_USE_ID: "toolu_Y"})
-    assert out.is_error and "not mediated" in out.text
+    assert out.is_error and "did not ticket this Claude Code call" in out.text
     assert not (project / "b.txt").exists()
     with server.store.lock():
         assert list(server.store.read(workorder.FRAMES, {})) == [SESSION]
+
+
+def test_attribute_refuses_claude_call_without_matching_ticket(store, monkeypatch):
+    monkeypatch.setenv(tickets.ROOT_FRAME_ENV, "stale-session")
+    with pytest.raises(tickets.AttributionRefused) as e:
+        tickets.attribute(store, "status", {tickets.CLAUDE_TOOL_USE_ID: "toolu_none"})
+    assert e.value.code == tickets.CLAUDE_NO_TICKET and e.value.frame == "stale-session"
+    assert "status refused" in e.value.message
+    tickets.put_ticket(store, "toolu_other", tool="open_gate", session_id=SESSION,
+                       turn_key="batch-1")
+    with pytest.raises(tickets.AttributionRefused) as e:
+        tickets.attribute(store, "status", {tickets.CLAUDE_TOOL_USE_ID: "toolu_other"})
+    assert e.value.code == tickets.CLAUDE_NO_TICKET
+    with store.lock():
+        assert "toolu_other" in store.read(tickets.TICKETS, {})
+    caller = tickets.attribute(store, "status", {})
+    assert (caller.host, caller.frame, caller.mediated) == (tickets.NO_HOST, "stale-session", False)
+
+
+def test_unticketed_claude_status_refused_without_side_effect(server, active_wo, monkeypatch):
+    monkeypatch.setenv(tickets.ROOT_FRAME_ENV, "stale-session")
+    refusal = ("tool:status", "stale-session", "refused-" + tickets.CLAUDE_NO_TICKET)
+
+    def tool_events():
+        return [(e["kind"], e["frame"], e["outcome"]) for e in events.read_all(server.store)
+                if e["kind"].startswith("tool:")]
+
+    out = Claude(server)("status", {}, ticket=False)
+    assert out.is_error and "witness:" not in out.text, out.text
+    assert tool_events()[-1] == refusal
+    tickets.put_ticket(server.store, "toolu_other", tool="open_gate", session_id=SESSION,
+                       turn_key="batch-1")
+    out = server.call("status", {}, {tickets.CLAUDE_TOOL_USE_ID: "toolu_other"})
+    assert out.is_error and "witness:" not in out.text, out.text
+    assert tool_events()[-1] == refusal
+    with server.store.lock():
+        assert server.store.read(workorder.FRAMES, {}) == {}
+    assert tool_events() == [refusal, refusal]
 
 
 def _delegated(server, active_wo):
@@ -441,3 +481,30 @@ def test_missing_turn_key_refused(server, active_wo, project, monkeypatch, site)
         assert not (project / "a.txt").exists()
     if site in ("status", "read_work_order"):
         assert "thread-main" not in server._witness_cell
+
+
+def test_delegated_status_without_turn_key_refused_before_binding(server, active_wo, monkeypatch):
+    delegation_id = _delegated(server, active_wo)
+    with server.store.lock():
+        delegations = server.store.read(workorder.DELEGATIONS, {})
+        frames = server.store.read(workorder.FRAMES, {})
+    record = next(r for r in delegations.values() if r["delegation_id"] == delegation_id)
+    assert record["caller_frame"] == SESSION  # the parent check would pass: bind_child is reachable
+    assert "thread-child" not in frames
+    caller = tickets.Caller(tickets.CODEX, "thread-child", None, mediated=True, subagent=True,
+                            parent_frame=SESSION)
+    monkeypatch.setattr(tickets, "attribute", lambda *_: caller)
+    out = server.call("status", {"delegation_id": delegation_id})
+    assert out.is_error, out.text
+    assert out.text.startswith("status refused"), out.text
+    log = events.read_all(server.store)
+    last = [e for e in log if e["kind"].startswith("tool:")][-1]
+    assert last["outcome"] == "refused-no-turn-key"
+    with server.store.lock():
+        assert "thread-child" not in server.store.read(workorder.FRAMES, {})
+        after = server.store.read(workorder.DELEGATIONS, {})
+    assert after == delegations
+    record = next(r for r in after.values() if r["delegation_id"] == delegation_id)
+    assert record["child_frame"] is None and record["bound_at"] is None
+    assert "thread-child" not in server._witness_cell
+    assert not [e for e in log if e["kind"] == "bind_child" and e["frame"] == "thread-child"]

@@ -13,6 +13,7 @@ from chrgate.core import claims, events, gate, workorder
 from chrgate.core.store import Store
 from chrgate.core.witness import WitnessIssuer
 from chrgate.hooks.adapters import claude_code
+from chrgate.server import tickets
 
 FRAME = "smoke-session-1"
 NAMES = [name for name, _ in smoke_check.STEPS]
@@ -113,6 +114,48 @@ def test_info_lines_never_change_the_exit_code(tmp_path, monkeypatch, capsys):
         f"{FRAME}\nother-session\n")
     rc, results, out = check(capsys, state, project)
     assert rc == 0 and set(results.values()) == {"PASS"}, out
-    assert f"kind={smoke_check.HOOK_ERROR}" in out and f"outcome={smoke_check.NOT_MEDIATED}" in out
+    assert "hook failed (hook_error, error-KeyError)" in out
+    assert "write_file call refused (not-mediated)" in out
     assert f"INFO: host session id {FRAME}: is a frame id" in out
     assert "INFO: host session id other-session: is not a frame id" in out
+
+
+INFO_EVENTS = [
+    {"time": "2026-10-30T17:05:00Z", "frame": "f1", "kind": "tool:status", "outcome": "ok",
+     "ref": None},
+    {"time": "2026-10-30T17:05:12Z", "frame": "stale-session", "kind": "tool:status",
+     "outcome": "refused-" + tickets.CLAUDE_NO_TICKET, "ref": None},
+    {"time": "2026-10-30T17:05:20Z", "frame": "root", "kind": "tool:write_file",
+     "outcome": smoke_check.NOT_MEDIATED, "ref": None},
+    {"time": "2026-10-30T17:05:25Z", "frame": "f1", "kind": "tool:write_file",
+     "outcome": "refused-invalid-argument", "ref": None},
+    {"time": "2026-10-30T17:05:30Z", "frame": None, "kind": smoke_check.HOOK_ERROR,
+     "outcome": "error-KeyError", "ref": None},
+]
+
+
+def info(tmp_path, records):
+    run = smoke_check.Run(events=records, proposals={}, work_order=None, frames={},
+                          project=tmp_path)
+    return smoke_check.info_lines(run, tmp_path / "state", claude_code.HOST)
+
+
+def test_info_lines_name_each_refused_or_hook_error_event(tmp_path):
+    lines = info(tmp_path, INFO_EVENTS)
+    assert lines[:4] == [
+        "INFO: 3 refused or failed hook event(s):",
+        "INFO:   2026-10-30T17:05:12Z status call refused (claude-no-ticket): no PreToolUse "
+        "ticket for this call, the chr-gate hook did not run for it; frame=stale-session",
+        "INFO:   2026-10-30T17:05:20Z write_file call refused (not-mediated): no PreToolUse "
+        "ticket names this call, which carried no Claude Code or Codex identity; frame=root",
+        "INFO:   2026-10-30T17:05:30Z hook failed (hook_error, error-KeyError): the chr-gate "
+        "hook raised KeyError, it denies consequential chr-gate tools and built-in writes on an "
+        "error and allows the rest; frame=None",
+    ]
+    assert not any("invalid-argument" in line for line in lines)
+
+
+def test_info_lines_none_line_names_all_three_codes(tmp_path):
+    lines = info(tmp_path, [INFO_EVENTS[0], INFO_EVENTS[3]])
+    assert lines[0] == "INFO: no refused-claude-no-ticket, refused-not-mediated or hook_error events"
+    assert not any("refused or failed hook event" in line for line in lines)

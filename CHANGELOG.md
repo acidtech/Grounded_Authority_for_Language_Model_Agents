@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- A Claude Code call to a chr-gate tool that the chr-gate PreToolUse hook did
+  not ticket is now refused (`claude-no-ticket`), fail closed, whatever the
+  tool. Before, it ran on the server's `CLAUDE_CODE_SESSION_ID` frame, which
+  is not the session's frame after `/clear` or `--resume`. The chr-gate hooks
+  are required: a session where they do not run gets every chr-gate call
+  refused, including `status`.
+
 ## 0.1.0 - 2026-10-29
 
 The first public release of chr-gate, the example CHR gate for Claude Code
