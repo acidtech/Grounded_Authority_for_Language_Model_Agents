@@ -1,9 +1,5 @@
 # CI for chr-gate: runs the unit suite (scripts/unit_suite.sh) on Python 3.12
 # and 3.14 under bubblewrap.
-#
-# This workflow has never run. It was validated only statically (actionlint and
-# a YAML structure read); its first run is the first push to GitHub, which is
-# the user's step.
 name: ci
 
 on:
@@ -22,14 +18,14 @@ jobs:
       matrix:
         python-version: ['3.12', '3.14']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         id: py
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           version: '0.7.21'
 
