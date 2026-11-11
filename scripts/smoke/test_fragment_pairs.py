@@ -13,8 +13,7 @@ SMOKE_DIR = Path(__file__).resolve().parent
 PLUGIN = SMOKE_DIR.parents[1] / "plugins" / "codex"
 FRAGMENT_PAIRS = SMOKE_DIR / "fragment_pairs.py"
 # What the pairs code embedded in smoke_codex.sh printed for
-# plugins/codex/config/chr-gate.toml before the move (pinned base
-# refs/pins/chr-gate-plugins-T5b-codex-plugin-mcp).
+# plugins/codex/config/chr-gate.toml before the move.
 SMOKE_PAIRS = b'sandbox_mode="read-only"\0features.shell_tool=false\0'
 
 

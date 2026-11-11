@@ -2,17 +2,25 @@
 
 delegate(caller, claim, text) runs under the caller's current gate and a
 valid claim; it records a child work order in delegations.json (keyed by its
-id: text, parent reference, caller frame, opening_id, time, claim, the
-principal approval it descends from) and returns a delegation id and the
-child reference. The parent puts the delegation id in the child's launch
-prompt; the child presents it on its first work-order read, and the server
+id: text, parent reference, caller frame, caller session, opening_id, time,
+claim, the principal approval it descends from, and delegation_sha256) and
+returns a delegation id and the child reference. Only the sha256 of the
+delegation id is stored, as for the witness; find() compares hashes, and a
+record without delegation_sha256 never matches. The parent puts the
+delegation id in the child's launch prompt; the child presents it on its
+first work-order read, and the server
 calls bind_child(child_frame, delegation_id) before read_work_order, so the
 child gets its own witness for its own work order. chain(ref) walks child ->
-caller work order -> principal approval. Narrowing is claimed, not checked.
+caller work order -> principal approval. inherited(wo_id) lists the work
+orders a delegated order inherits its bounds from, root first, and
+work_order_section renders them verbatim before the child's own task text
+(F12). Narrowing is claimed, not checked.
 A delegated work order lives only while its parent version is current
 (workorder.resolve).
 """
 
+import hashlib
+import hmac
 import secrets
 from dataclasses import dataclass
 from typing import Any
@@ -28,6 +36,8 @@ UNKNOWN_DELEGATION = "unknown-delegation"
 BOUND_ELSEWHERE = "delegation-bound-elsewhere"
 FRAME_GOVERNED_ELSEWHERE = "frame-governed-elsewhere"
 NOT_LIVE = "work-order-not-live"
+INHERITED_RULE = ("Your task is limited by every inherited work order above. Where they "
+                  "disagree, the inherited order governs: stop and report to your assigner.")
 
 
 @dataclass(frozen=True)
@@ -52,8 +62,22 @@ def _ref(wo_id: str, version: int) -> str:
     return f"wo:{wo_id}.v{version}"
 
 
-def delegate(store: Store, caller_frame: str, claim: str, work_order_text: str) -> Delegation:
-    """Record a child work order under CALLER_FRAME's current gate and claim."""
+def delegation_sha256(delegation_id: str) -> str:
+    return hashlib.sha256(delegation_id.encode("utf-8", "surrogatepass")).hexdigest()
+
+
+def find(delegated: dict[str, Any], delegation_id: str) -> dict[str, Any] | None:
+    """The record of DELEGATION_ID in DELEGATED, matched by delegation_sha256; a
+    record without one (state from before hashing) never matches, fail closed."""
+    digest = delegation_sha256(delegation_id)
+    return next((r for r in delegated.values() if "delegation_sha256" in r
+                 and hmac.compare_digest(r["delegation_sha256"], digest)), None)
+
+
+def delegate(store: Store, caller_frame: str, claim: str, work_order_text: str,
+             caller_session: str | None = None) -> Delegation:
+    """Record a child work order under CALLER_FRAME's current gate and claim.
+    CALLER_SESSION is the Claude Code session of the caller (None on Codex)."""
     check_frame_id(caller_frame)
     if not isinstance(work_order_text, str) or not work_order_text.strip():
         raise ValueError("a delegated work order must be non-empty text")
@@ -63,16 +87,16 @@ def delegate(store: Store, caller_frame: str, claim: str, work_order_text: str) 
                                            {"claim": claim, "work_order": work_order_text})
         delegated = store.read(workorder.DELEGATIONS, {})
         wo_id = workorder._new_id(DELEGATED_PREFIX, delegated)
-        taken = {r["delegation_id"] for r in delegated.values()}
         delegation_id = DELEGATION_PREFIX + secrets.token_hex(8)
-        while delegation_id in taken:
+        while find(delegated, delegation_id) is not None:
             delegation_id = DELEGATION_PREFIX + secrets.token_hex(8)
         principal = store.read(workorder.WORK_ORDER, None)
         delegated[wo_id] = {
             "id": wo_id, "version": 1, "text": work_order_text,
             "parent_id": parent.id, "parent_version": parent.version, "parent_ref": parent.ref,
-            "caller_frame": caller_frame, "opening_id": current["opening_id"],
-            "created_at": utc_now(), "claim": claim, "delegation_id": delegation_id,
+            "caller_frame": caller_frame, "caller_session": caller_session,
+            "opening_id": current["opening_id"], "created_at": utc_now(), "claim": claim,
+            "delegation_sha256": delegation_sha256(delegation_id),
             "child_frame": None, "bound_at": None,
             "principal": {"ref": _ref(principal["id"], principal["version"]),
                           "plan_id": principal["plan_id"], "approval": principal["approval"]}}
@@ -88,8 +112,7 @@ def bind_child(store: Store, child_frame_id: str, delegation_id: str) -> str:
     check_frame_id(child_frame_id)
     with store.lock():
         delegated = store.read(workorder.DELEGATIONS, {})
-        record = next((r for r in delegated.values()
-                       if r["delegation_id"] == delegation_id), None)
+        record = find(delegated, delegation_id)
 
         def refuse(code: str, message: str) -> Refused:
             events.append(store, frame=child_frame_id, kind="bind_child", outcome=f"refused-{code}")
@@ -148,3 +171,47 @@ def chain(store: Store, ref: str) -> list[Link]:
     links.append(Link(kind="approval", ref=principal["ref"],
                       approval={"plan_id": principal["plan_id"], **principal["approval"]}))
     return links
+
+
+def inherited(store: Store, wo_id: str) -> list[workorder.WorkOrder]:
+    """The work orders WO_ID inherits its bounds from, root first: the principal
+    (user-approved) order, then each delegated order down to WO_ID's own
+    assigner; [] for the principal itself. Root first because hosts truncate a
+    long result from its end, so the root bound is the last to go. The caller
+    holds store.lock() and has seen WO_ID resolve (workorder.resolve), so every
+    parent is live at its recorded parent_version; RuntimeError otherwise."""
+    if not wo_id.startswith(DELEGATED_PREFIX):
+        return []
+    delegated = store.read(workorder.DELEGATIONS, {})
+    record = delegated.get(wo_id)
+    if record is None:
+        raise RuntimeError(f"unknown delegated work order {wo_id!r}")
+    bounds: list[workorder.WorkOrder] = []
+    while record["parent_id"].startswith(DELEGATED_PREFIX):
+        parent = delegated.get(record["parent_id"])
+        if parent is None or parent["version"] != record["parent_version"]:
+            raise RuntimeError(f"{_ref(record['parent_id'], record['parent_version'])} "
+                               "is not live")
+        record = parent
+        bounds.append(workorder.WorkOrder(id=record["id"], version=record["version"],
+                                          text=record["text"]))
+    principal = workorder.active(store)
+    if principal is None or principal.ref != _ref(record["parent_id"], record["parent_version"]):
+        raise RuntimeError(f"{_ref(record['parent_id'], record['parent_version'])} is not live")
+    bounds.append(principal)
+    return bounds[::-1]
+
+
+def work_order_section(store: Store, wo_id: str, text: str) -> str:
+    """The work order block that status, open_gate and compaction deliver for
+    WO_ID with its TEXT: for the principal '--- work order text ---' and TEXT;
+    for a delegated order every inherited bound verbatim, the rule that they
+    govern, then TEXT. The caller holds store.lock() (see inherited)."""
+    bounds = inherited(store, wo_id)
+    if not bounds:
+        return f"--- work order text ---\n{text}"
+    parts = [f"--- inherited bounds: {wo.ref} "
+             f"({'approved by the user' if i == 0 else 'written by its assigner'}) ---\n{wo.text}"
+             for i, wo in enumerate(bounds)]
+    return "\n".join([*parts, INHERITED_RULE,
+                      f"--- work order text (your task, written by your assigner) ---\n{text}"])

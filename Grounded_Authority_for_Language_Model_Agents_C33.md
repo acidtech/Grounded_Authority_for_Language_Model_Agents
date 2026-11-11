@@ -1,6 +1,6 @@
 # Grounded Authority for Language-Model Agents
 
-Oct 27, 2026 · Nathan Scherdin
+Nov 11, 2026 · Nathan Scherdin
 
 *Context provenance, warning feedback and enforced action gates for language-model workers* · Draft · Engineering design document · Nathan Scherdin
 
@@ -1399,6 +1399,8 @@ The general requirement is a worker-produced response validated against protecte
 | Single-block `plan_auth` (reference) | The whole authority is presented and resurfaced at every opening | Bounded tasks |
 | Task sub-authorities | Each task is a narrowed authority with its own frame and witness | Delegated work; in use |
 | Header and chunks with bound chunk witnesses | Global constraints always live; scoped procedure read on demand | Large projects (Companion B) |
+
+Task sub-authorities follow a recursive assigner model. The assigner, the worker that delegates a task, acts as principal for the sub-frame only: it writes the child's task under its own open gate and authority, and once issued the task is immutable, so a changed task is a new delegation to a new child. Every bound above the task is inherited verbatim and wins over it. Each governed read in the child's frame delivers the principal-approved order first, then each intermediate assigner's order, then the rule that the inherited orders govern, then the task. The root `plan_auth` stays the fixed reference for the whole chain, and a revision or revocation of any order above ends the delegation. A child whose task is wrong or conflicts with an inherited bound stops and reports to its assigner; authority runs child to assigner to principal. This keeps Invariant 1 (Protected authority, Section 3.2) and Law 14 (Every binding yardstick derives from approved `plan_auth`, Section 2.7) intact: a delegated task is a narrowed sub-authority under a live `plan_auth`, not a write to it.
 
 ### F.6 Write paths
 

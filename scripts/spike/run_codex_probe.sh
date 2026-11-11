@@ -23,6 +23,13 @@ if [ "$MODE" = batch ] && [ -e "$OUT" ]; then
   echo "previous output moved to $PREV"
 fi
 mkdir -p "$OUT"
+UV="$(command -v uv || true)"
+if [ -z "$UV" ]; then
+  echo "$0: uv not found on PATH; the probe MCP server runs through uv" >&2
+  exit 2
+fi
+# The kit config is a template: render @KIT@ (this directory) and @UV@ into $OUT.
+python3 "$KIT/render_kit_config.py" --kit "$KIT" --uv "$UV" "$KIT/codex/probe.toml" "$OUT/probe.toml"
 if [ ! -d "$PROJ/.git" ]; then
   mkdir -p "$PROJ"
   git -C "$PROJ" init -q
@@ -68,7 +75,7 @@ to_c_args() {  # read NUL-separated overrides file into C_ARGS as -c pairs
   while IFS= read -r -d '' item; do C_ARGS+=(-c "$item"); done < "$1"
 }
 
-overrides "$KIT/codex/probe.toml" > "$OUT/overrides-probe.bin"
+overrides "$OUT/probe.toml" > "$OUT/overrides-probe.bin"
 tr '\0' '\n' < "$OUT/overrides-probe.bin" > "$OUT/overrides-probe.txt"
 to_c_args "$OUT/overrides-probe.bin"
 PROBE_C=("${C_ARGS[@]}")

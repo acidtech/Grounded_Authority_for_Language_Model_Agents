@@ -1,7 +1,7 @@
 [project]
 name = "chrgate"
-version = "0.1.0"
-description = "Example CHR gate core for the Claude Code and Codex plugins (C32 Appendix A)"
+version = "0.2.0"
+description = "Example CHR gate core for the Claude Code and Codex plugins (C33 Appendix A)"
 readme = "README.md"
 license = "PolyForm-Noncommercial-1.0.0"
 license-files = ["LICENSE.md"]

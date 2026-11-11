@@ -124,10 +124,9 @@ PY
 A_TEXT="$("${PY[@]}" -c 'from chrgate.smoke_check import EXPECTED_FILES as E; print(E["a.txt"])')"
 B_TEXT="$("${PY[@]}" -c 'from chrgate.smoke_check import EXPECTED_FILES as E; print(E["b.txt"])')"
 WO_TEXT="Create a.txt containing exactly '$A_TEXT' and b.txt containing exactly '$B_TEXT' in the project root with the chr-gate write_file tool."
-turn 1-propose "chr-gate smoke test, step 1. Call the chr-gate tool propose_plan with its text argument set to exactly this text: $WO_TEXT Make no other tool call, then reply with the plan id."
+turn 1-propose "chr-gate smoke test, step 1. Call the chr-gate tool propose_plan with its text argument set to exactly this text: $WO_TEXT Make no other tool call, then reply with the plan id. My next message will be the approval phrase alone; that is smoke step 2: make no tool call in that turn, reply OK."
 PLAN="$(plan_id)"
-turn 2-approve "approve $PLAN
-(chr-gate smoke test, step 2: make no tool call in this turn; reply OK.)"
+turn 2-approve "approve $PLAN"
 turn 3-wrong-witness "chr-gate smoke test, step 3. Call the chr-gate tool open_gate with witness 'wit:00000000000000000000000000000000', which is deliberately wrong. Make no other tool call, then reply with the exact result text."
 turn 4-status-open "chr-gate smoke test, step 4. Call the chr-gate tool status. Then, in a later step after you have seen its result, call open_gate with the witness status returned. Make no other tool call, then reply with the work order text open_gate returned."
 turn 5-parallel-writes "chr-gate smoke test, step 5. In ONE step make TWO PARALLEL calls of the chr-gate tool write_file: one with path a.txt and content '$A_TEXT', one with path b.txt and content '$B_TEXT'. Each call carries its own claim as its FIRST argument, citing your work order reference (wo:ID.vN). Make no other tool call, then reply DONE."

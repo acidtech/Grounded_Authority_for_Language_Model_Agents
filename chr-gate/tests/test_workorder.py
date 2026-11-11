@@ -3,8 +3,8 @@ import re
 
 import pytest
 
-from chrgate.core import gate, workorder
-from chrgate.core.witness import WitnessIssuer
+from chrgate.core import events, gate, workorder
+from chrgate.core.witness import NoActiveWorkOrder, WitnessIssuer
 
 
 def test_activate_stores_exact_proposed_text(store, wo_text):
@@ -60,3 +60,35 @@ def test_unknown_plan_id_refused_without_state_change(store, active_wo, state_sn
     assert state_snapshot(store.root) == before
     with store.lock():
         assert workorder.active(store) == active_wo
+
+
+def test_revoke_ends_active_and_next_approval_continues_version(store, issuer, active_wo):
+    frames = ["session-A", "agent-B"]
+    for f in frames:
+        assert gate.open_gate(store, f, issuer.read_work_order(f).witness).status == gate.OPEN
+    prompt = f"revoke {active_wo.ref}"
+    assert workorder.revoke(store, active_wo.ref, prompt) == active_wo
+
+    with store.lock():
+        assert workorder.active(store) is None
+        record = store.read(workorder.WORK_ORDER, None)
+        recs = store.read(workorder.FRAMES, None)
+    assert record["revocation"]["prompt_sha256"] == hashlib.sha256(prompt.encode()).hexdigest()
+    assert record["revocation"]["revoked_at"]
+    for f in frames:
+        assert (recs[f]["witness_sha256"], recs[f]["witness_binding"], recs[f]["gate"]) == (
+            None, None, None)
+        assert not gate.gate_is_current(store, f)
+    with pytest.raises(NoActiveWorkOrder):
+        issuer.read_work_order("session-A")
+    assert [(e["outcome"], e["ref"]) for e in events.read_all(store)
+            if e["kind"] == "revoke"] == [("revoked", active_wo.ref)]
+    with pytest.raises(workorder.NotActive):  # already revoked: nothing to revoke
+        workorder.revoke(store, active_wo.ref, prompt)
+
+    plan_id = workorder.propose(store, "next text")
+    wo2 = workorder.activate(store, plan_id, f"approve {plan_id}")
+    assert (wo2.id, wo2.version, wo2.text) == (active_wo.id, 2, "next text")
+    with store.lock():
+        assert workorder.active(store) == wo2
+        assert "revocation" not in store.read(workorder.WORK_ORDER, None)

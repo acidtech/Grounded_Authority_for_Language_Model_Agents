@@ -72,11 +72,11 @@ the end:
   servers with a minimal environment; the hooks inherit the shell's.
 - Tool approval: `plugins/codex/.mcp.json` also sets
   `default_tools_approval_mode` to `"approve"`, so Codex runs the chr-gate
-  tools under the smoke's `approval_policy="never"` instead of refusing them
-  (bug 24b8a8). This is safe because chr-gate's own gate (work order, open
+  tools under the smoke's `approval_policy="never"` instead of refusing them.
+  This is safe because chr-gate's own gate (work order, open
   gate, claim) checks every write.
 
-## Root frame probe (debt dcb46a)
+## Root frame probe
 
 chr-gate takes the root frame of a call with no frame identity from the MCP
 server's environment `CLAUDE_CODE_SESSION_ID` (`tickets.root_frame()`); the
@@ -119,7 +119,7 @@ How to read it:
 
 - every row MATCH and `result: PASS` (exit 0): the server env id equals the
   hook session id in all three calls, before `/clear`, after it and after
-  `--resume`; that closes dcb46a.
+  `--resume`, so the server env is a sound root frame.
 - any MISMATCH (for example after `/clear`, when the hook session id changes
   but the server keeps its env), or a different `pid` in the first two rows
   (one claude process, so the server was restarted on `/clear` and its env

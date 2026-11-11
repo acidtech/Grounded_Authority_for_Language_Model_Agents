@@ -2,7 +2,7 @@
   "mcpServers": {
     "probe": {
       "type": "stdio",
-      "command": "/home/acidtech/.local/bin/uv",
+      "command": "@UV@",
       "args": [
         "run",
         "--no-project",
@@ -10,7 +10,7 @@
         "--with",
         "mcp>=2.3,<3",
         "python",
-        "/home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_mcp_server.py"
+        "@KIT@/probe_mcp_server.py"
       ],
       "env": {
         "CHR_SPIKE_OUT": "/tmp/chr-gate-spike/claude",

@@ -4,8 +4,11 @@ propose(text) stores a proposal under a plan id (P- plus 8 hex). activate() is
 the trusted principal path (UserPromptSubmit, T3): it makes exactly the
 proposed text the principal work order with the next version, records the
 approval, and clears the witness and gate of every frame that work order
-governs (C32 Invariant 3; Appendix A activate_plan_auth). WorkOrder.ref is the
-reference string wo:ID.vN that claims cite.
+governs (C33 Invariant 3; Appendix A activate_plan_auth). revoke() is the other
+trusted principal path: it ends the active principal work order, so active()
+is None and every delegation under it ends, and clears the witness and gate of
+every frame; the next activate() continues the version sequence. WorkOrder.ref
+is the reference string wo:ID.vN that claims cite.
 
 The frame registry (frames.json) lives here because activation must invalidate
 governed frames, and the witness and gate layers build on this module. Frame
@@ -33,6 +36,16 @@ class UnknownPlan(LookupError):
     """activate() got a plan id that was never proposed."""
 
 
+class NotActive(LookupError):
+    """revoke() got a reference that is not the active principal work order;
+    active_ref is the active reference, None when none is active."""
+
+    def __init__(self, ref: str, active_ref: str | None) -> None:
+        super().__init__(f"{ref!r} is not the active work order; nothing revoked")
+        self.ref = ref
+        self.active_ref = active_ref
+
+
 @dataclass(frozen=True)
 class WorkOrder:
     id: str
@@ -42,6 +55,10 @@ class WorkOrder:
     @property
     def ref(self) -> str:
         return f"wo:{self.id}.v{self.version}"
+
+
+def _prompt_sha256(prompt_text: str) -> str:
+    return hashlib.sha256(prompt_text.encode("utf-8", "surrogatepass")).hexdigest()
 
 
 def _new_id(prefix: str, taken: dict[str, Any]) -> str:
@@ -81,7 +98,7 @@ def activate(store: Store, plan_id: str, approval_prompt_text: str) -> WorkOrder
         else:
             wo = WorkOrder(id=current["id"], version=current["version"] + 1, text=text)
         now = utc_now()
-        prompt_hash = hashlib.sha256(approval_prompt_text.encode("utf-8", "surrogatepass")).hexdigest()
+        prompt_hash = _prompt_sha256(approval_prompt_text)
         record = {"id": wo.id, "version": wo.version, "text": wo.text, "plan_id": plan_id,
                   "activated_at": now,
                   "approval": {"prompt_sha256": prompt_hash, "approved_at": now}}
@@ -95,10 +112,35 @@ def activate(store: Store, plan_id: str, approval_prompt_text: str) -> WorkOrder
     return wo
 
 
+def revoke(store: Store, ref: str, prompt_text: str) -> WorkOrder:
+    """Revoke the active principal work order REF (id and version): mark its
+    record revoked, clear the witness and gate of every frame (principal and
+    delegated alike) and return it. NotActive when REF is not the active
+    principal reference. Trusted principal path only."""
+    if not isinstance(prompt_text, str):
+        raise TypeError("prompt_text must be the principal's prompt text")
+    with store.lock():
+        current = active(store)
+        if current is None or current.ref != ref:
+            events.append(store, frame=None, kind="revoke", outcome="refused-not-active", ref=ref)
+            raise NotActive(ref, None if current is None else current.ref)
+        record = store.read(WORK_ORDER, None)
+        record["revocation"] = {"prompt_sha256": _prompt_sha256(prompt_text),
+                                "revoked_at": utc_now()}
+        frames = store.read(FRAMES, {})
+        for rec in frames.values():
+            clear_witness(rec)
+        store.write(WORK_ORDER, record)
+        store.write(FRAMES, frames)
+        events.append(store, frame=None, kind="revoke", outcome="revoked", ref=ref)
+    return current
+
+
 def active(store: Store) -> WorkOrder | None:
-    """The active principal work order; the caller holds store.lock()."""
+    """The active principal work order, None when none was approved or the user
+    revoked it; the caller holds store.lock()."""
     record = store.read(WORK_ORDER, None)
-    if record is None:
+    if record is None or "revocation" in record:
         return None
     return WorkOrder(id=record["id"], version=record["version"], text=record["text"])
 
@@ -121,7 +163,7 @@ def resolve(store: Store, wo_id: str) -> WorkOrder | None:
     delegated work order whose parent (by id and version) is itself live. None
     when no work order is active or a parent version was superseded, so a
     principal revision ends every delegation made under the earlier version
-    (C32 Invariant 3). The caller holds store.lock()."""
+    (C33 Invariant 3). The caller holds store.lock()."""
     principal = active(store)
     if principal is None:
         return None

@@ -9,7 +9,7 @@ License: Copyright (c) 2026 Nathan Scherdin. This document is licensed under CC 
 This guide is for developers who want to add a grounded authority gate to an existing agent harness or command-line agent tool. It works in four stages, each usable on its own, and then adds the layers that sit above the gate.
 
 - **No code ships with this guide.** Every listing is pseudocode. Nothing here is a reference implementation.
-- **The paper is normative.** The source of every requirement is Grounded_Authority_for_Language_Model_Agents_C32.md, called "the paper" below. Where this guide and the paper differ, the paper governs.
+- **The paper is normative.** The source of every requirement is Grounded_Authority_for_Language_Model_Agents_C33.md, called "the paper" below. Where this guide and the paper differ, the paper governs.
 - **Harness-generic.** The guide assumes only an OpenAI-compatible chat-completion interface with tool calls, a harness that receives those calls and dispatches them, and trusted state the worker cannot write. It does not target any particular harness product.
 
 ## Conventions
@@ -25,7 +25,7 @@ This guide is for developers who want to add a grounded authority gate to an exi
 
 ## Stage table
 
-| Stage | C32 sections implemented | Appendix C tests to pass | Exit criterion |
+| Stage | C33 sections implemented | Appendix C tests to pass | Exit criterion |
 | --- | --- | --- | --- |
 | 1. Shared context-provenance validator and minimal warning profile | Section 3.0 The shared context-provenance validator; Section 2.3 Identifiers | 2 C.1 rows test the warning profile itself and pass at Stage 1. Three further C.1 rows exercise the shared retrieval check; they pass in their authority form at Stage 2. All five are listed in Stage 1. | A witness placed in a chunk validates while that chunk is present in current context. A citation of an absent, removed or unassociated chunk returns a warning to the same model and blocks nothing. |
 | 2. Authority gate with `plan_auth` and the bound witness | Section 2.3 Identifiers; Section 2.4 Context epochs; Section 3.2 The four invariants; Section 3.3 The gate; Appendix A. Minimal CHR protocol; B.1 Epoch and authority changes; B.2 Opening the gate | 26 C.1 rows and 1 C.2 row, listed in Stage 2 | Every Stage 2 row passes with resurfacing disabled, and no consequential tool can reach dispatch except through `consequential_batch`. |
@@ -139,7 +139,7 @@ Four properties of the loop carry the paper's requirements:
 
 **Purpose.** Build the one retrieval test that the authority gate later specializes. The harness places an unguessable witness inside a context chunk, records the association in protected state, and checks a model-generated citation against that chunk's presence in current context. On failure it warns the same model. In the paper's words, "Authority provenance is therefore a specialization of context provenance" (Section 3.0). Building this first gives Stage 2 a tested witness generator, placement routine and context tracker.
 
-**C32 sections implemented.** Section 3.0 The shared context-provenance validator (its four steps and the "General provenance warning" profile); Section 2.3 Identifiers (witness form, and the rule that the witness is included within the delivered chunk).
+**C33 sections implemented.** Section 3.0 The shared context-provenance validator (its four steps and the "General provenance warning" profile); Section 2.3 Identifiers (witness form, and the rule that the witness is included within the delivered chunk).
 
 **Status: Specified addition.** Section 5.1 What ran lists "Minimal provenance-warning feedback" as "Specified in Section 3.0; not yet in use; evaluation in Experiment 16".
 
@@ -231,7 +231,7 @@ Three further C.1 rows, below, test the retrieval check Stage 1 builds. At Stage
 
 **Purpose.** Bind every consequential action to the genuine reference. On a governed read of active `plan_auth`, the harness issues a witness bound to authority version, worker frame and context epoch and delivers it inside the authority's chunk. At each consequential boundary the worker must generate that witness at `open_gate`, and the harness dispatches consequential effects only behind a current, one-batch gate. This stage is CHR: "Appendix A implements the four invariants with nothing else" (Section 3.2). Deployed alone it is the "Gate only" variant of Appendix F.2.
 
-**C32 sections implemented.** Section 2.3 Identifiers; Section 2.4 Context epochs; Section 3.2 The four invariants; Section 3.3 The gate; Appendix A. Minimal CHR protocol; B.1 Epoch and authority changes; B.2 Opening the gate (without its resurfacing lines, which Stage 3 adds).
+**C33 sections implemented.** Section 2.3 Identifiers; Section 2.4 Context epochs; Section 3.2 The four invariants; Section 3.3 The gate; Appendix A. Minimal CHR protocol; B.1 Epoch and authority changes; B.2 Opening the gate (without its resurfacing lines, which Stage 3 adds).
 
 **Status: Deployed, with specified additions.** Section 5.1 What ran reports "Witness gate, one gate per consequential batch, parallel-batch rule" and "Task-level sub-authorities with one read per task" as "In use". Within this stage, the `authority_unavailable` witness value and the failed-opening cap are **Specified additions** ("Specified (Section 3.3); not yet in use"). Section 5.1 lists the "`status()` bootstrap with a separately minted session witness" as "Specified (Sections 2.4 and 3.3; Appendix B.1); not yet in use", so it is a **Specified addition**. Section 5.1 lists "Strict invalidation on every modification of cached context" as "Specified (Section 2.4; Appendix A `on_cached_context_modified`); not yet in use"; Section 2.4 describes the historical fallback, an input-token-drop heuristic, as "a limited implementation option, not fulfillment of the strict invalidation rule". Build the strict rule.
 
@@ -375,7 +375,7 @@ g_read_memory(frame, record_id):              # the governed read behind the rea
 
 **Purpose.** Renew presentation of the exact approved authority at the moment it matters. A successful opening returns the exact authority and the selected evidence, under the unchanged witness, as the content of the `open_gate` tool message. The text is "prefilled input/tool-result content, not text the worker generates token by token" (Section 3.4), so the worker pays for it in input tokens only. Stage 3 also fixes the timing policy between opening and action.
 
-**C32 sections implemented.** Section 3.4 Resurfacing (including "Timing policy" and "Policy and cost"); B.2 Opening the gate (the resurfacing lines omitted at Stage 2).
+**C33 sections implemented.** Section 3.4 Resurfacing (including "Timing policy" and "Policy and cost"); B.2 Opening the gate (the resurfacing lines omitted at Stage 2).
 
 **Status: Deployed.** Section 5.1 What ran reports "Resurfacing at gate opening" as "In use", and describes the deployed two-step harness: "`open_gate` validates the witness and returns the approved authority as prefilled tool-result text".
 
@@ -455,7 +455,7 @@ All Stage 2 rows must still pass with resurfacing enabled.
 
 **Purpose.** Make the worker state, before it generates an action, why the active authority permits that specific action and what each piece of relied-on evidence contributes. A trusted generation adapter completes and freezes the claim fields before it enables the dependent action-payload fields, and supplies a protected receipt that binds the observed order to this gate opening and to the exact emitted claims and payloads. Dispatch runs through `act_tool_turn` (B.3), which replaces the Stage 2 wrapper.
 
-**C32 sections implemented.** Section 3.5 Claims (including "Generation order and release" and "What the harness checks"); B.3 The action turn.
+**C33 sections implemented.** Section 3.5 Claims (including "Generation order and release" and "What the harness checks"); B.3 The action turn.
 
 **Status: Deployed in part; the ordering contract is a Specified addition.** Section 5.1 What ran reports "Action claims and plan-level evidence obligations" as "In use". It lists "Enforced claim-before-payload generation and protected ordering receipt" as "Specified (Section 3.5; Appendix B.3); enforcement not established by the historical audit or current deployment record". Without the receipt check this stage is the "Deployed two-step gate, resurfacing and contemporaneous claims" variant of Appendix F.2. "An adapter that cannot enforce and attest this sequence must not report compliance with the strict reference contract" (B.3).
 

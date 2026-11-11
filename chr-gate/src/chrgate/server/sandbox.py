@@ -3,7 +3,10 @@
 bwrap applies mounts in argv order and a later bind over the same path wins,
 so every read-only bind comes AFTER the writable binds it must override. That
 keeps the project (research) and the state root (both profiles) read-only
-even when they live under the writable /tmp.
+even when they live under /tmp. research_shell mounts a private tmpfs at /tmp
+and an empty one at /run before its binds; a later bind still takes its
+source from the host, so a project or state root under /tmp stays visible.
+mutate_shell binds the host's /tmp, writable.
 
 Protected paths are ro-bound in mutate_shell. A bound path is a mount point,
 so inside the sandbox it can be neither written, removed nor renamed. A .git
@@ -195,7 +198,7 @@ def ensure_protected(project: PathArg, state_root: PathArg) -> list[Path]:
     removes the placeholders a crashed run_mutate left behind."""
     root = Path(project)
     state = _state(state_root)
-    with _project_lock(state):
+    with project_lock(state):
         _remove_placeholders(root, state)
         created = []
         for name in REQUIRED_DIRS:
@@ -251,9 +254,11 @@ def _lock_masks(state: Path, empty_file: Path) -> list[str]:
 
 
 @contextmanager
-def _project_lock(state: Path) -> Iterator[None]:
-    """Exclusive flock on the project's lock file for the whole block."""
-    fd = os.open(state / LOCK_NAME, os.O_RDWR | os.O_CREAT, 0o600)
+def project_lock(state_root: PathArg) -> Iterator[None]:
+    """Exclusive flock on the project's lock file in STATE_ROOT for the whole
+    block: mutate_shell runs and the write_file and edit_file effects of one
+    project serialize on it across server processes. Not reentrant."""
+    fd = os.open(_state(state_root) / LOCK_NAME, os.O_RDWR | os.O_CREAT, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
         yield
@@ -307,7 +312,7 @@ def _nested_git(root: Path) -> tuple[list[Path], list[Path]]:
     """Every entry named .git in a directory 1 to NESTED_GIT_SCAN_DEPTH levels
     below ROOT, and the directories within that depth that could not be read
     (PermissionError). Symlinked directories and .git directories are never
-    entered."""
+    entered; a directory removed or replaced during the scan is skipped."""
     found: list[Path] = []
     unreadable: list[Path] = []
 
@@ -317,6 +322,8 @@ def _nested_git(root: Path) -> tuple[list[Path], list[Path]]:
                 entries = sorted(it, key=lambda e: e.name)
         except PermissionError:
             unreadable.append(directory)
+            return
+        except (FileNotFoundError, NotADirectoryError):
             return
         for entry in entries:
             path = directory / entry.name
@@ -416,8 +423,7 @@ def _ancestor_pins(root: Path, listed: dict[Path, bool], targets: list[Path]) ->
 
 
 def _base(bwrap: str) -> list[str]:
-    return [bwrap, "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc",
-            "--bind", "/tmp", "/tmp"]
+    return [bwrap, "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc"]
 
 
 def _bind(flag: str, path: Path) -> list[str]:
@@ -433,12 +439,14 @@ def _env() -> list[str]:
 
 
 def research_argv(project: PathArg, state_root: PathArg, command: str) -> list[str]:
-    """Project and state root read-only, /tmp otherwise writable, no network."""
+    """Project and state root read-only, /tmp a private writable tmpfs, /run
+    an empty tmpfs, no network."""
     root = Path(project).resolve(strict=True)
     bwrap = _bwrap()
     state = _state(state_root)
     _, empty_file = _placeholder_sources(state)
     return (_base(bwrap)
+            + ["--tmpfs", "/tmp", "--tmpfs", "/run"]
             + _bind("--ro-bind", root)
             + _bind("--ro-bind", state)
             + _lock_masks(state, empty_file)
@@ -497,7 +505,7 @@ def _mutate_argv(project: PathArg, state_root: PathArg,
             binds += ["--ro-bind", str(source), str(first)]
             targets.append(first)
             placeholders.append(rel)
-    argv = _base(bwrap) + _bind("--bind", root)
+    argv = _base(bwrap) + ["--bind", "/tmp", "/tmp"] + _bind("--bind", root)
     for pin in _ancestor_pins(root, listed, targets):
         argv += _bind("--bind", pin)
     argv += _bind("--ro-bind", state) + _lock_masks(state, empty_file)
@@ -562,7 +570,7 @@ def run_mutate(project: PathArg, state_root: PathArg, command: str, timeout: flo
     rescan cannot read."""
     root = Path(project).resolve(strict=True)
     state = _state(state_root)
-    with _project_lock(state):
+    with project_lock(state):
         _remove_placeholders(root, state)
         argv, placeholders, nested = _mutate_argv(root, state, command)
         _record_placeholders(state, placeholders)

@@ -5,7 +5,15 @@
       "Write",
       "Edit",
       "MultiEdit",
-      "NotebookEdit"
+      "NotebookEdit",
+      "CronCreate",
+      "CronDelete",
+      "EnterWorktree",
+      "ExitWorktree",
+      "RemoteTrigger",
+      "ScheduleWakeup",
+      "SendMessage",
+      "Workflow"
     ]
   }
 }

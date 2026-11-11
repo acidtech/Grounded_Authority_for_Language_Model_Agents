@@ -1,3 +1,6 @@
+import hashlib
+import re
+
 import pytest
 
 from chrgate.core import claims, delegation, gate, workorder
@@ -114,3 +117,81 @@ def test_chain_unknown_reference(store, active_wo):
     for ref in ("wo:DW-unknown.v1", "not a reference"):
         with pytest.raises(LookupError):
             delegation.chain(store, ref)
+
+
+def test_delegation_id_stored_as_hash_only(store, issuer, active_wo):
+    _open(store, issuer, FRAME)
+    d = delegation.delegate(store, FRAME, f"under {active_wo.ref}", CHILD_TEXT)
+    raw = (store.root / workorder.DELEGATIONS).read_bytes()
+    assert d.delegation_id.encode() not in raw
+    assert re.search(rb"D-[0-9a-f]{16}", raw) is None, raw
+    with store.lock():
+        (record,) = store.read(workorder.DELEGATIONS, {}).values()
+    assert record["delegation_sha256"] == hashlib.sha256(d.delegation_id.encode()).hexdigest()
+    assert delegation.bind_child(store, CHILD, d.delegation_id) == d.ref
+
+
+def test_record_without_hash_never_binds(store, issuer, active_wo):
+    _open(store, issuer, FRAME)
+    d = delegation.delegate(store, FRAME, f"under {active_wo.ref}", CHILD_TEXT)
+    with store.lock():
+        delegated = store.read(workorder.DELEGATIONS, {})
+        for record in delegated.values():  # the record as stored before hashing
+            record.pop("delegation_sha256", None)
+            record["delegation_id"] = d.delegation_id
+        store.write(workorder.DELEGATIONS, delegated)
+    with pytest.raises(Refused) as refused:
+        delegation.bind_child(store, CHILD, d.delegation_id)
+    assert refused.value.code == delegation.UNKNOWN_DELEGATION
+
+
+def test_inherited_walks_to_principal_root_first(store, issuer, active_wo):
+    _open(store, issuer, FRAME)
+    d = delegation.delegate(store, FRAME, f"under {active_wo.ref}", CHILD_TEXT)
+    delegation.bind_child(store, CHILD, d.delegation_id)
+    _open(store, issuer, CHILD)
+    g = delegation.delegate(store, CHILD, f"under {d.ref}", "Only the CRLF test.")
+    d_id, g_id = (claims.REF_RE.fullmatch(x.ref).group(1) for x in (d, g))
+    with store.lock():
+        assert delegation.inherited(store, active_wo.id) == []
+        assert delegation.inherited(store, d_id) == [active_wo]
+        assert delegation.inherited(store, g_id) == [
+            active_wo, workorder.WorkOrder(id=d_id, version=1, text=CHILD_TEXT)]
+
+
+def test_inherited_raises_when_parent_not_live(store, issuer, active_wo):
+    _open(store, issuer, FRAME)
+    d = delegation.delegate(store, FRAME, f"under {active_wo.ref}", CHILD_TEXT)
+    delegation.bind_child(store, CHILD, d.delegation_id)
+    _open(store, issuer, CHILD)
+    g = delegation.delegate(store, CHILD, f"under {d.ref}", "Only the CRLF test.")
+    d_id, g_id = (claims.REF_RE.fullmatch(x.ref).group(1) for x in (d, g))
+    # (b) first, while the principal is live: g's delegated parent d is not at
+    # g's parent_version, so the walk stops at d and never reaches the principal
+    with store.lock():
+        delegated = store.read(workorder.DELEGATIONS, {})
+        delegated[d_id]["version"] = 2
+        store.write(workorder.DELEGATIONS, delegated)
+        with pytest.raises(RuntimeError, match="is not live"):
+            delegation.inherited(store, g_id)
+    # (a) the principal d descends from was revised
+    plan_id = workorder.propose(store, "revised")
+    workorder.activate(store, plan_id, f"approve {plan_id}")
+    with store.lock():
+        with pytest.raises(RuntimeError, match="is not live"):
+            delegation.inherited(store, d_id)
+
+
+def test_inherited_raises_when_parent_record_absent(store, issuer, active_wo):
+    _open(store, issuer, FRAME)
+    d = delegation.delegate(store, FRAME, f"under {active_wo.ref}", CHILD_TEXT)
+    delegation.bind_child(store, CHILD, d.delegation_id)
+    _open(store, issuer, CHILD)
+    g = delegation.delegate(store, CHILD, f"under {d.ref}", "Only the CRLF test.")
+    d_id, g_id = (claims.REF_RE.fullmatch(x.ref).group(1) for x in (d, g))
+    with store.lock():
+        delegated = store.read(workorder.DELEGATIONS, {})
+        del delegated[d_id]
+        store.write(workorder.DELEGATIONS, delegated)
+        with pytest.raises(RuntimeError, match="is not live"):
+            delegation.inherited(store, g_id)

@@ -2,12 +2,16 @@
 
 Every expectation is parsed from the sources, never from a hand list:
 - every relative markdown link in the README resolves to an existing path;
-- every C32 section the README cites ('C32 2.3', 'C32 F.3', 'C32 Appendix A',
-  or any 'Appendix X') is a heading of Grounded_Authority_for_Language_Model_Agents_C32.md;
+- every C33 section the README cites ('C33 2.3', 'C33 F.3', 'C33 Appendix A',
+  or any 'Appendix X') is a heading of Grounded_Authority_for_Language_Model_Agents_C33.md;
 - every verdict marked FALLBACK or LIMIT in docs/spike-findings.md (the
   Verdict summary table and the per-item 'Verdict:' lines) has a limit
   paragraph in the README's 'Stated limits' section naming 'spike item N',
-  the host and the verdict.
+  the host and the verdict;
+- each limit label of the 2026-11 review (L1-L8, L11, L12) leads exactly one
+  'Stated limits' paragraph, and the labels the review drops because their
+  fixes shipped (L9, L10) appear nowhere in the README. These labels are a
+  hand list: they name sections of an external review, not of a tracked file.
 The release documents are checked too:
 - every relative markdown link in the repository root README.md resolves;
 - the release documents exist and none calls the release open source.
@@ -19,7 +23,7 @@ from pathlib import Path
 CHR_GATE = Path(__file__).resolve().parents[1]
 REPO = CHR_GATE.parent
 README = CHR_GATE / "README.md"
-C32 = REPO / "Grounded_Authority_for_Language_Model_Agents_C32.md"
+C33 = REPO / "Grounded_Authority_for_Language_Model_Agents_C33.md"
 SPIKE = CHR_GATE / "docs" / "spike-findings.md"
 ROOT_README = REPO / "README.md"
 RELEASE_DOCS = ("README.md", "chr-gate/README.md", "CHANGELOG.md", "CONTRIBUTING.md",
@@ -28,11 +32,14 @@ RELEASE_DOCS = ("README.md", "chr-gate/README.md", "CHANGELOG.md", "CONTRIBUTING
 LIMIT_VERDICTS = ("FALLBACK", "LIMIT")
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
-CITED_SECTION_RE = re.compile(r"C32 (\d+(?:\.\d+)*|[A-Z]\.\d+(?:\.\d+)*)(?![\w.]*\w)")
+CITED_SECTION_RE = re.compile(r"C33 (\d+(?:\.\d+)*|[A-Z]\.\d+(?:\.\d+)*)(?![\w.]*\w)")
 CITED_APPENDIX_RE = re.compile(r"\bAppendix ([A-Z])\b")
 HEADING_RE = re.compile(r"#{1,6}\s+(.*)")
 VERDICT_WORD_RE = re.compile(r"\b(" + "|".join(LIMIT_VERDICTS) + r")\b")
 OPEN_SOURCE_RE = re.compile(r"open[\s-]source", re.IGNORECASE)
+REVIEW_LABELS = ("L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L11", "L12")
+DROPPED_LABELS = ("L9", "L10")
+LABEL_LEAD_RE = re.compile(r"\**(L\d+)\.")
 
 
 def _outside_fences(text: str) -> list[str]:
@@ -46,10 +53,10 @@ def _outside_fences(text: str) -> list[str]:
     return lines
 
 
-def c32_section_ids() -> set[str]:
-    """Section ids from the C32 headings: '2.3', '3', 'F.3', 'Appendix A'."""
+def c33_section_ids() -> set[str]:
+    """Section ids from the C33 headings: '2.3', '3', 'F.3', 'Appendix A'."""
     ids = set()
-    for line in _outside_fences(C32.read_text(encoding="utf-8")):
+    for line in _outside_fences(C33.read_text(encoding="utf-8")):
         m = HEADING_RE.fullmatch(line)
         if m is None:
             continue
@@ -138,13 +145,13 @@ def test_relative_links_resolve():
     assert not broken, f"README links to missing paths: {broken}"
 
 
-def test_cited_c32_sections_exist():
-    headings = c32_section_ids()
-    assert {"2.3", "Appendix A"} <= headings, "C32 heading parse found no sections"
+def test_cited_c33_sections_exist():
+    headings = c33_section_ids()
+    assert {"2.3", "Appendix A"} <= headings, "C33 heading parse found no sections"
     cited = readme_cited_sections(README.read_text(encoding="utf-8"))
-    assert cited, "the README cites no C32 section"
+    assert cited, "the README cites no C33 section"
     missing = sorted(cited - headings)
-    assert not missing, f"README cites C32 sections that are not headings of {C32.name}: {missing}"
+    assert not missing, f"README cites C33 sections that are not headings of {C33.name}: {missing}"
 
 
 def test_spike_fallback_and_limit_verdicts_have_limit_paragraphs():
@@ -156,6 +163,15 @@ def test_spike_fallback_and_limit_verdicts_have_limit_paragraphs():
                           for p in paragraphs)]
     assert not missing, ("FALLBACK/LIMIT verdicts with no 'Stated limits' paragraph naming "
                          f"'spike item N', the host and the verdict: {missing}")
+
+
+def test_stated_limits_cover_review_labels():
+    text = README.read_text(encoding="utf-8")
+    leads = [m[1] for p in stated_limit_paragraphs(text) if (m := LABEL_LEAD_RE.match(p))]
+    wrong = {label: leads.count(label) for label in REVIEW_LABELS if leads.count(label) != 1}
+    assert not wrong, f"review labels not leading exactly one 'Stated limits' paragraph: {wrong}"
+    dropped = [label for label in DROPPED_LABELS if re.search(rf"\b{label}\b", text)]
+    assert not dropped, f"README names review labels whose fixes shipped: {dropped}"
 
 
 def test_root_readme_links_resolve():

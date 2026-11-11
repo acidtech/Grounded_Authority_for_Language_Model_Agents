@@ -6,7 +6,8 @@ frame and epoch: {frame: {"epoch": N, "sha256": [...]}}. A nonce is current
 only in the frame it was issued to and only while that frame is in the epoch
 it was issued in, so a new epoch (gate.new_epoch) clears the frame's set: the
 old hashes stop counting at once, and the first issue of the new epoch
-replaces them on disk.
+replaces them on disk. Compaction also deletes the frame's entry (clear),
+which covers a frame with no record whose epoch could advance.
 """
 
 import hashlib
@@ -45,6 +46,15 @@ def issue(store: Store, frame_id: str) -> str:
         entry["sha256"].append(nonce_sha256(nonce))
         store.write(NONCES, registry)
     return nonce
+
+
+def clear(store: Store, frame_id: str) -> None:
+    """Delete FRAME_ID's registry entry: none of its nonces is current any more."""
+    check_frame_id(frame_id)
+    with store.lock():
+        registry = store.read(NONCES, {})
+        if registry.pop(frame_id, None) is not None:
+            store.write(NONCES, registry)
 
 
 def is_current(store: Store, frame_id: str, nonce: object) -> bool:

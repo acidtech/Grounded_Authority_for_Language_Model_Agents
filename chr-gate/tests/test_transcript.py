@@ -1,4 +1,4 @@
-"""Codex citation check against a real rollout (debt 101d2d): the fixture is
+"""Codex citation check against a real rollout: the fixture is
 lines 95-131 of the 2026-10-29 smoke rollout, one whole turn from task_started
 to task_complete, committed byte-for-byte."""
 

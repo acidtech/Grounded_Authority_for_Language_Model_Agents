@@ -18,7 +18,7 @@ Everything under these directories is licensed under the PolyForm Noncommercial 
 
 These documents are licensed under the Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License (CC BY-NC-ND 4.0; full text in [LICENSES/CC-BY-NC-ND-4.0.txt](LICENSES/CC-BY-NC-ND-4.0.txt); <https://creativecommons.org/licenses/by-nc-nd/4.0/>):
 
-- `Grounded_Authority_for_Language_Model_Agents_C32.md`
+- `Grounded_Authority_for_Language_Model_Agents_C33.md`
 - `Implementing_a_Grounded_Authority_Harness.md`
 - `The_Wrong_Defendant_AI_Governance_Failure_v2_2.md`
 

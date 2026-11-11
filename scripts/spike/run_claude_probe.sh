@@ -22,6 +22,14 @@ if [ "$MODE" = batch ] && [ -e "$OUT" ]; then
   echo "previous output moved to $PREV"
 fi
 mkdir -p "$OUT"
+UV="$(command -v uv || true)"
+if [ -z "$UV" ]; then
+  echo "$0: uv not found on PATH; the probe MCP server runs through uv" >&2
+  exit 2
+fi
+# The kit configs are templates: render @KIT@ (this directory) and @UV@ into $OUT.
+python3 "$KIT/render_kit_config.py" --kit "$KIT" --uv "$UV" "$KIT/claude/settings.json" "$OUT/claude-settings.json"
+python3 "$KIT/render_kit_config.py" --kit "$KIT" --uv "$UV" "$KIT/claude/mcp.json" "$OUT/claude-mcp.json"
 if [ ! -d "$PROJ/.git" ]; then
   mkdir -p "$PROJ"
   git -C "$PROJ" init -q
@@ -35,8 +43,8 @@ claude --version > "$OUT/claude-version.txt" 2>&1
 # local settings (global hooks, enabled plugins) load; the login is not a setting
 # and stays. --strict-mcp-config: only the probe MCP server loads.
 COMMON=(
-  --settings "$KIT/claude/settings.json"
-  --mcp-config "$KIT/claude/mcp.json"
+  --settings "$OUT/claude-settings.json"
+  --mcp-config "$OUT/claude-mcp.json"
   --strict-mcp-config
   --setting-sources project
   --allowedTools "mcp__probe__probe_write mcp__probe__probe_read Write Agent Task"

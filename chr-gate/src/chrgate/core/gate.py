@@ -1,4 +1,4 @@
-"""The action gate (C32 Appendix A open_gate, consequential_batch and
+"""The action gate (C33 Appendix A open_gate, consequential_batch and
 gate_is_current).
 
 open_gate(frame, witness, turn_key) checks the witness against the frame's
@@ -7,14 +7,16 @@ epoch. Any mismatch returns DENIED with 'read your work order' and changes no
 state; a pass records a gate (opening_id, work order id, version, frame,
 epoch, opened_at, expires_at = opened_at + config gate_lifetime_seconds,
 opening_turn_key, intervening_turns, seen_turn_keys, consumed_by) and returns
-OPEN with the full work order text. open_gate neither rotates nor consumes the
-witness.
+OPEN with the full work order text. open_gate in a turn whose consequential
+call consumed the current gate is DENIED and changes no state. open_gate
+neither rotates nor consumes the witness.
 
 note_turn(frame, turn_key) counts one completed nonconsequential worker turn
 against an open, unconsumed gate (never the opening turn, never a key twice).
 take_gate(frame, turn_key) is the single dispatch check for a consequential
-call: the gate is current (authority), now < expires_at, intervening_turns <=
-config max_intervening_turns, the call is not in the opening turn (C32
+call: the gate is current (authority), now < expires_at, intervening_turns
+(the caller's own turn left out) <= config max_intervening_turns, the call
+is not in the opening turn (C33
 'Opening first': the turn key differs from opening_turn_key), and the gate is
 unconsumed or consumed by this same turn key. The first passing call consumes the gate for its turn key, so
 the parallel calls of one batch share it and a later batch needs a new
@@ -50,6 +52,8 @@ EXPIRED_TEXT = "pending gate expired; reopen with the same witness"
 CONSUMED_TEXT = "gate already used by an earlier batch; call open_gate again"
 OPENING_TURN_TEXT = ("a consequential call cannot run in the turn that opened the gate; "
                      "make it in your next turn")
+ACTED_TURN_TEXT = ("open_gate cannot run in a turn that made a consequential call; "
+                   "call it in your next turn")
 TAKE_TEXT = {NO_GATE: DENIED_TEXT, EXPIRED_LIFETIME: EXPIRED_TEXT,
              EXPIRED_TURNS: EXPIRED_TEXT, CONSUMED: CONSUMED_TEXT,
              OPENING_TURN: OPENING_TURN_TEXT}
@@ -115,6 +119,11 @@ def open_gate(store: Store, frame_id: str, witness: str, turn_key: str | None = 
         if not valid:
             events.append(store, frame=frame_id, kind="open_gate", outcome="denied")
             return GateResult(status=DENIED, message=DENIED_TEXT)
+        current, _ = current_gate(store, frames, frame_id)
+        if turn_key is not None and current is not None and current["consumed_by"] == turn_key:
+            events.append(store, frame=frame_id, kind="open_gate", outcome="denied-acted-turn",
+                          ref=current["opening_id"])
+            return GateResult(status=DENIED, message=ACTED_TURN_TEXT)
         gate = {"opening_id": "G-" + secrets.token_hex(8), "work_order": wo.id,
                 "version": wo.version, "frame": frame_id, "epoch": rec["epoch"],
                 "opened_at": opened.isoformat(),
@@ -198,7 +207,8 @@ def take_gate(store: Store, frame_id: str, turn_key: str,
             code = OPENING_TURN
         elif not at < datetime.fromisoformat(current["expires_at"]):
             code = EXPIRED_LIFETIME
-        elif current["intervening_turns"] > config.max_intervening_turns:
+        elif (current["intervening_turns"] - int(turn_key in current["seen_turn_keys"])
+              > config.max_intervening_turns):  # the action turn is not intervening
             code = EXPIRED_TURNS
         elif current["consumed_by"] not in (None, turn_key):
             code = CONSUMED

@@ -1,6 +1,6 @@
 {
-  "P-7fcda509": {
-    "proposed_at": "2026-10-29T13:01:58.960132+00:00",
+  "P-66a07961": {
+    "proposed_at": "2026-11-11T16:39:38.027837+00:00",
     "text": "Create a.txt containing exactly 'chr-gate smoke alpha' and b.txt containing exactly 'chr-gate smoke bravo' in the project root with the chr-gate write_file tool."
   }
 }

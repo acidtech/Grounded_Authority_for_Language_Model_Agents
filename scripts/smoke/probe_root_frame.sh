@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Root frame probe (debt dcb46a): compare the MCP server env CLAUDE_CODE_SESSION_ID
+# Root frame probe: compare the MCP server env CLAUDE_CODE_SESSION_ID
 # with the Claude Code hook session_id for the same tool call. See README.md.
 #   probe_root_frame.sh setup   scratch project ROOT/proj with the whoami probe
 #                               server (.mcp.json) and its PreToolUse hook

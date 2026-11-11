@@ -127,7 +127,7 @@ def test_every_manifest_parses():
 
 
 def test_codex_plugin_mcp_layout():
-    """Codex-native layout (T5b, bug fd67c7). In codex-cli 0.162.1 a root
+    """Codex-native layout. In codex-cli 0.162.1 a root
     plugin.json with the Agent Plugins $schema makes Codex parse the MCP file in
     that format, which skips our entry (no "type", has env_vars) and forwards no
     parent environment; .codex-plugin/plugin.json selects the legacy parser
@@ -163,7 +163,7 @@ def test_server_name_matches_hook_tool_prefix(monkeypatch):
 
 
 def test_codex_mcp_tools_preapproved():
-    """Codex runs chr-gate tools under approval_policy never (bug 24b8a8)."""
+    """Codex runs chr-gate tools under approval_policy never."""
     server = load(MCP_CONFIG)["mcpServers"][server_name()]
     assert server.get("default_tools_approval_mode") == "approve", server
 

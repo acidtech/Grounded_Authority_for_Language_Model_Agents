@@ -1,4 +1,4 @@
-"""Regression tests for codex_preflight.py (T7a2, bug aa2aea) against a stub codex.
+"""Regression tests for codex_preflight.py against a stub codex.
 
 Run as: cd chr-gate && uv run --frozen --no-sync pytest -q -p no:cacheprovider \
 ../scripts/smoke/test_codex_preflight.py

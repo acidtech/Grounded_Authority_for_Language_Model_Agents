@@ -257,8 +257,11 @@ Question: can the gate stop built-in writes (Claude `Write`; Codex
   either host. Claude Code still needs a ticket for frame identity, keyed by
   `tool_use_id`: PreToolUse writes `{session_id, agent_id, agent_type,
   transcript_path}` under the tool_use_id and the server consumes it by
-  `claudecode/toolUseId`. Codex needs no ticket: the server takes the frame
-  from `_meta` (`threadId`, `parent_thread_id`, `itemId`).
+  `claudecode/toolUseId`. Codex: since the F4 fix the PreToolUse hook also
+  writes a ticket, keyed by the hook `tool_use_id`, which equals the MCP
+  `_meta.callId`, and the server refuses a call without one
+  (`codex-no-ticket`); the frame still comes from `_meta` (`threadId`,
+  `parent_thread_id`, `itemId`).
 - Assistant text for citations: Claude Code uses the `cite(nonces)` tool
   (FALLBACK, item 4). Codex reads `transcript_path` at PreToolUse and takes the
   `response_item/message/assistant` records of the current turn.

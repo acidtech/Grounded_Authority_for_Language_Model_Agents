@@ -3,7 +3,7 @@ import re
 
 from chrgate.core import citations, events, nonces, workorder
 from chrgate.core.gate import (DENIED, DENIED_TEXT, OPEN, close_gate, gate_is_current,
-                               new_epoch, open_gate)
+                               new_epoch, open_gate, take_gate)
 from chrgate.core.store import Store
 from chrgate.core.witness import WitnessIssuer
 
@@ -177,3 +177,16 @@ def test_witness_format(issuer, active_wo):
     assert len(m.group(1)) * 4 >= 64
     assert len(m.group(1)) == 32
     assert m.group(1) not in active_wo.ref
+
+
+def test_open_gate_refused_in_turn_that_acted(store, issuer, state_snapshot):
+    w = issuer.read_work_order(FRAME).witness
+    assert open_gate(store, FRAME, w, turn_key="t-open").status == OPEN
+    assert take_gate(store, FRAME, "t-act").ok
+    before = state_snapshot(store.root)
+    result = open_gate(store, FRAME, w, turn_key="t-act")
+    assert (result.status, result.message) == (
+        DENIED, "open_gate cannot run in a turn that made a consequential call; "
+        "call it in your next turn")
+    assert state_snapshot(store.root) == before
+    assert open_gate(store, FRAME, w, turn_key="t-next").status == OPEN

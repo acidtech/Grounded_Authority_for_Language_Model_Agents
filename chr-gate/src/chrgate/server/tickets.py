@@ -9,22 +9,31 @@ tells it differently.
   consumes it. The frame is agent_id in a subagent, else session_id; turn_key
   is the tool-batch key. A ticket names its tool (the bare MCP tool name) and
   matches no other tool.
-- Codex: no ticket. The frame is _meta.threadId, the turn key is the code
-  cell _meta.itemId, and a subagent call carries
+- Codex: the PreToolUse hook writes the same ticket under the hook
+  tool_use_id, which equals the call's _meta.callId
+  (tests/fixtures/spike-raw/codex/call-ids.jsonl); its turn_key is the Codex
+  turn_id. The server consumes it, but the frame is _meta.threadId, the turn
+  key is the code cell _meta.itemId, and a subagent call carries
   _meta["x-codex-turn-metadata"].parent_thread_id. A Codex call (client name
-  codex*, or any Codex _meta key) without threadId or itemId is refused,
-  fail closed.
+  codex*, or any Codex _meta key) without threadId or itemId is refused
+  (codex-no-item-id); one with no ticket naming its tool under its callId is
+  refused (codex-no-ticket: the plugin hooks are not running, for example not
+  yet trusted), whatever the tool. Both fail closed, recorded on the thread
+  frame when the call names one.
 - A Claude Code call (non-empty claudecode/toolUseId) without a ticket naming
-  its tool is refused (claude-no-ticket), fail closed. Like the Codex refusal
-  it is recorded on root_frame(), because the server env
-  CLAUDE_CODE_SESSION_ID is not the session's frame after /clear or --resume
-  (bug 327e55).
+  its tool is refused (claude-no-ticket), fail closed. Like a Codex refusal
+  without threadId it is recorded on root_frame(), because the server env
+  CLAUDE_CODE_SESSION_ID is not the session's frame after /clear or --resume.
 - Anything else (no host identity): the root session frame
   (CLAUDE_CODE_SESSION_ID when set, else "root"), no turn key, not mediated.
   tools.py refuses a consequential call that is not mediated.
+
+A ticket the server never takes (the host refused the call after PreToolUse)
+is deleted by the hook when its batch ends (drop_tickets).
 """
 
 import os
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -42,6 +51,7 @@ ROOT_FRAME_ENV = "CLAUDE_CODE_SESSION_ID"
 ROOT_FRAME = "root"
 CODEX_NO_ITEM_ID = "codex-no-item-id"
 CLAUDE_NO_TICKET = "claude-no-ticket"
+CODEX_NO_TICKET = "codex-no-ticket"
 
 
 class AttributionRefused(Exception):
@@ -62,6 +72,7 @@ class Caller:
     mediated: bool
     subagent: bool
     parent_frame: str | None = None
+    session_id: str | None = None  # Claude Code: the ticket's session_id
 
 
 def _text(value: Any) -> bool:
@@ -76,7 +87,8 @@ def root_frame() -> str:
 def put_ticket(store: Store, tool_use_id: str, *, tool: str, session_id: str, turn_key: str,
                agent_id: str | None = None, agent_type: str | None = None,
                transcript_path: str | None = None) -> None:
-    """Record the PreToolUse ticket of Claude Code call TOOL_USE_ID (T3)."""
+    """Record the PreToolUse ticket of host call TOOL_USE_ID (Claude Code
+    toolUseId, Codex callId)."""
     for name, value in (("tool_use_id", tool_use_id), ("tool", tool),
                         ("session_id", session_id), ("turn_key", turn_key)):
         if not _text(value):
@@ -106,6 +118,17 @@ def take_ticket(store: Store, tool_use_id: str, tool: str) -> dict[str, Any] | N
     return ticket
 
 
+def drop_tickets(store: Store, tool_use_ids: Iterable[str]) -> None:
+    """Delete the tickets of TOOL_USE_IDS that the server never took."""
+    with store.lock():
+        tickets = store.read(TICKETS, {})
+        left = [i for i in set(tool_use_ids) if i in tickets]
+        for tool_use_id in left:
+            del tickets[tool_use_id]
+        if left:
+            store.write(TICKETS, tickets)
+
+
 def attribute(store: Store, tool: str, meta: dict[str, Any] | None,
               client_name: str | None = None) -> Caller:
     """The calling frame of TOOL from the request _meta (and ticket)."""
@@ -119,6 +142,13 @@ def attribute(store: Store, tool: str, meta: dict[str, Any] | None,
                 CODEX_NO_ITEM_ID, f"{tool} refused: a Codex call must carry _meta.threadId and "
                 "_meta.itemId (run Codex with code mode on); refused, fail closed",
                 thread if _text(thread) else root_frame())
+        call_id = meta.get("callId")
+        if not (_text(call_id) and take_ticket(store, call_id, tool) is not None):
+            raise AttributionRefused(
+                CODEX_NO_TICKET, f"{tool} refused: the chr-gate PreToolUse hook did not ticket "
+                f"this Codex call (no ticket names {tool} under its _meta.callId); trust the "
+                "chr-gate plugin hooks (/hooks) or run with them enabled; refused, fail closed",
+                thread)
         turn_meta = meta.get(CODEX_TURN_METADATA)
         parent = turn_meta.get("parent_thread_id") if isinstance(turn_meta, dict) else None
         return Caller(CODEX, thread, item, mediated=True, subagent=_text(parent),
@@ -129,7 +159,8 @@ def attribute(store: Store, tool: str, meta: dict[str, Any] | None,
         if ticket is not None:
             agent = ticket["agent_id"]
             return Caller(CLAUDE, agent or ticket["session_id"], ticket["turn_key"],
-                          mediated=True, subagent=agent is not None)
+                          mediated=True, subagent=agent is not None,
+                          session_id=ticket["session_id"])
         raise AttributionRefused(
             CLAUDE_NO_TICKET, f"{tool} refused: the chr-gate PreToolUse hook did not ticket this "
             f"Claude Code call (no ticket names {tool} under its claudecode/toolUseId); the "

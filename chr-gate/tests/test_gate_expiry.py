@@ -216,3 +216,25 @@ def test_consequential_call_in_opening_turn_refused(store, issuer, state_snapsho
     assert state_snapshot(store.root) == before
     assert _frame(store)["gate"]["consumed_by"] is None
     assert gate.take_gate(store, FRAME, "t-next").ok
+
+
+def test_action_turn_not_counted_as_intervening(store, issuer):
+    _config(store, {"max_intervening_turns": 0})
+    _open(store, _read(issuer), turn_key="t-open")
+    assert gate.note_turn(store, FRAME, "cell-act")  # the Codex cell's research call
+    result = gate.take_gate(store, FRAME, "cell-act")  # then its write
+    assert (result.ok, result.code) == (True, gate.TAKEN)
+
+
+def test_default_policy_off_by_one_fixed(store, issuer):
+    w = _read(issuer)
+    _open(store, w, turn_key="t-open")
+    for key in ("r1", "r2", "r3", "cell-act"):
+        assert gate.note_turn(store, FRAME, key)
+    result = gate.take_gate(store, FRAME, "cell-act")
+    assert (result.ok, result.code) == (True, gate.TAKEN)
+    _open(store, w, turn_key="t-open-2")
+    for key in ("r1", "r2", "r3", "r4", "cell-act-2"):
+        assert gate.note_turn(store, FRAME, key)
+    result = gate.take_gate(store, FRAME, "cell-act-2")
+    assert (result.ok, result.code) == (False, gate.EXPIRED_TURNS)

@@ -1,14 +1,14 @@
 {
-  "fbf48d06-09ce-4619-b4c1-bd398be0e595": {
+  "9602edd5-4633-49f8-81f0-3aa9d4f83e4d": {
     "epoch": 1,
     "gate": null,
-    "governs": "WO-9a382bf7",
+    "governs": "WO-1e371406",
     "witness_binding": {
       "epoch": 1,
-      "frame": "fbf48d06-09ce-4619-b4c1-bd398be0e595",
+      "frame": "9602edd5-4633-49f8-81f0-3aa9d4f83e4d",
       "version": 1,
-      "work_order": "WO-9a382bf7"
+      "work_order": "WO-1e371406"
     },
-    "witness_sha256": "ab4df562debcb3135970152a15d38782da5b7a26fda0ad36c74e80be56866b99"
+    "witness_sha256": "c3eb4a2e70d4342474fa8990db21d6737bfa0825462b3f1278c22ad92ffa0725"
   }
 }

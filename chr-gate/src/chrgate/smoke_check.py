@@ -7,11 +7,17 @@ it also runs against copied outputs), reads the state files beside it
 prints PASS or FAIL for each of the six smoke steps. Exit 0 only when all six
 pass, 1 when any fails, 2 when the inputs cannot be checked at all.
 
+A workorder.json record carrying a revocation counts as not active, as in
+chrgate.core.workorder.active(): the activation and correct-witness steps fail
+on it, naming the revoked reference.
+
 INFO lines are diagnostics and never change the exit code: one line per event
 with outcome refused-claude-no-ticket or refused-not-mediated or kind
 hook_error, naming the attempted tool (or the hook error), the code and its
-meaning, and the frame; and the frame ids seen in events.jsonl next to the
-host session ids the smoke script saved in HOST-session.txt beside STATE.
+meaning, and the frame; one line per builtin_denied event (a built-in the
+chr-gate hook denied), naming the tool and the frame; and the frame ids seen in
+events.jsonl next to the host session ids the smoke script saved in
+HOST-session.txt beside STATE.
 """
 
 import argparse
@@ -24,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from chrgate.core import claims, events, gate, workorder
+from chrgate.hooks import engine
 from chrgate.hooks.adapters import claude_code, codex
 from chrgate.server import tickets
 
@@ -62,6 +69,11 @@ class Run:
     def ref(self) -> str | None:
         wo = self.work_order
         return None if wo is None else workorder.WorkOrder(wo["id"], wo["version"], wo["text"]).ref
+
+    @property
+    def revoked(self) -> bool:
+        # Mirrors workorder.active(): a record carrying a revocation is no active work order.
+        return self.work_order is not None and "revocation" in self.work_order
 
 
 def find_state_root(state: Path) -> Path:
@@ -128,6 +140,8 @@ def step_activation(run: Run, host: str) -> Result:
     wo = run.work_order
     if wo is None:
         return False, "no workorder.json: nothing was activated"
+    if run.revoked:
+        return False, f"{run.ref} was revoked: no work order is active"
     plan = wo["plan_id"]
     if plan not in run.proposals:
         return False, f"active {run.ref} names plan {plan}, which is not in proposals.json"
@@ -156,6 +170,8 @@ def step_correct_witness(run: Run, host: str) -> Result:
     start = _activation(run)
     if start is None or run.work_order is None:
         return False, "no activation event"
+    if run.revoked:
+        return False, f"{run.ref} was revoked: no active work order to have read"
     for i in range(start, len(run.events)):
         event = run.events[i]
         if not _is(event, "open_gate", "open"):
@@ -233,6 +249,10 @@ def info_lines(run: Run, state: Path, host: str) -> list[str]:
             tool, code = e["kind"].removeprefix("tool:"), e["outcome"].removeprefix("refused-")
             out.append(f"INFO:   {e['time']} {tool} call refused ({code}): "
                        f"{REFUSAL_MEANING[code]}; frame={e['frame']}")
+    for e in run.events:
+        if e["kind"] == engine.BUILTIN_DENIED:
+            out.append(f"INFO:   {e['time']} built-in {e['ref']} denied by the chr-gate hook "
+                       f"({engine.BUILTIN_DENIED}); frame={e['frame']}")
     frames = sorted({e["frame"] for e in run.events if e["frame"] is not None})
     out.append("INFO: frame ids in events.jsonl: " + (", ".join(frames) or "none"))
     session = state.parent / SESSION_FILE.format(host=host)

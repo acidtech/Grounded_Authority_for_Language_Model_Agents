@@ -1,4 +1,4 @@
-"""Regression tests for the root frame probe kit (debt dcb46a).
+"""Regression tests for the root frame probe kit.
 
 Run as: cd chr-gate && uv run --frozen --no-sync pytest -q -p no:cacheprovider \
 ../scripts/smoke/test_root_frame_probe.py

@@ -9,7 +9,9 @@ runs on the raw arguments, so the first key must be claim; write_file,
 edit_file and mutate_shell refuse while a required protected path is missing
 (fail closed: the user runs chrgate-setup); paths are checked; then
 gate.take_gate is the single gate check, and only then does the effect run. A
-refusal before take_gate changes no gate state. On Codex every
+refusal before take_gate changes no gate state. write_file and edit_file check
+their path again under sandbox.project_lock and open it with O_NOFOLLOW, so a
+symlink planted after the first check is refused. On Codex every
 non-consequential call reports its itemId with gate.note_turn (Claude Code
 turns are reported by the T3 hooks at PostToolBatch).
 
@@ -19,7 +21,13 @@ ticket, Codex parent_thread_id) that is not registered yet must present the
 delegation id from its launch prompt; the server binds it (delegation.
 bind_child) before the read, so the child is governed by the delegated work
 order. On Codex, open_gate in the same itemId as the read that delivered the
-witness is refused.
+witness is refused; the child's parent thread must be the delegating frame. On
+Claude Code the child's session must be the delegating caller's session. A
+delegated frame's status and open_gate text carry every inherited work order
+verbatim before its own task text (delegation.work_order_section).
+
+When the chrgate package lies inside the project (paths.self_hosted) every
+call is refused (self-hosting); tools/list still answers.
 
 Every result carries a fresh context nonce (nonces.issue) and appends one
 events.jsonl entry. Sandbox refusals pass their message through unchanged; an
@@ -46,8 +54,8 @@ NONCE_LABEL = "chr-gate context nonce: "
 NO_WORK_ORDER_TEXT = ("no active work order: propose one with propose_plan and ask the user "
                       "to approve it")
 DELEGATION_ENDED_TEXT = ("your delegation ended: the work order that delegated to you was "
-                         "revised, so your delegated work order no longer holds; stop and "
-                         "report back to your caller")
+                         "revised or revoked, so your delegated work order no longer holds; stop "
+                         "and report back to your caller")
 SAME_CELL_TEXT = (gate.DENIED_TEXT + ": open_gate must run in a later code cell than the "
                   "status/read_work_order call that delivered the witness")
 EFFECT_TOOLS = ("write_file", "edit_file", "mutate_shell")
@@ -188,6 +196,13 @@ def _shell_text(result: sandbox.RunResult) -> str:
     return f"exit code: {result.rc}\n[stdout]\n{result.stdout}\n[stderr]\n{result.stderr}"
 
 
+def _open_nofollow(path: Path, flags: int, mode: str):
+    """Open PATH as utf-8 text without following a symlink at its final
+    component (that raises OSError ELOOP)."""
+    return os.fdopen(os.open(path, flags | os.O_NOFOLLOW, 0o666), mode, encoding="utf-8",
+                     newline="")
+
+
 class GateServer:
     """The server state for one project: its Store and its single witness issuer."""
 
@@ -196,6 +211,7 @@ class GateServer:
         self.state_root = paths.state_root(self.project)
         self.store = Store(self.state_root)
         self.issuer = WitnessIssuer(self.store)
+        self.self_hosted = paths.self_hosted(self.project)
         self._witness_cell: dict[str, str] = {}  # Codex frame -> itemId of its last read
 
     def call(self, name: str, arguments: Mapping[str, Any] | None,
@@ -205,6 +221,8 @@ class GateServer:
         kind = f"tool:{name}" if tool is not None else "tool:unknown"
         raw = {} if arguments is None else arguments
         try:
+            if self.self_hosted:
+                raise ToolError("self-hosting", f"{name} refused: {paths.SELF_HOSTED_TEXT}")
             if tool is None:
                 raise ToolError("unknown-tool", f"unknown tool {name!r}")
             caller = tickets.attribute(self.store, name, dict(meta or {}), client_name)
@@ -227,6 +245,8 @@ class GateServer:
             code, text, is_error = "sandbox-refused", str(e), True
         except ValueError as e:
             code, text, is_error = "invalid-argument", f"{name}: {e}", True
+        except OSError as e:
+            code, text, is_error = "internal-error", f"{name}: internal error: {e}", True
         nonce = nonces.issue(self.store, frame)
         with self.store.lock():
             events.append(self.store, frame=frame, kind=kind,
@@ -290,6 +310,19 @@ class GateServer:
             return (rec is not None and rec["governs"].startswith(delegation.DELEGATED_PREFIX)
                     and workorder.resolve(self.store, rec["governs"]) is None)
 
+    def _section(self, ref: str, text: str) -> str:
+        """The work order block for REF and its TEXT (delegation.work_order_section);
+        a delegation that lapsed since the read keeps the delegation-ended path."""
+        m = claims.REF_RE.fullmatch(ref)
+        if m is None:
+            raise RuntimeError(f"not a work order reference: {ref!r}")
+        wo_id = m.group(1)
+        with self.store.lock():
+            if (wo_id.startswith(delegation.DELEGATED_PREFIX)
+                    and workorder.resolve(self.store, wo_id) is None):
+                raise ToolError("delegation-ended", DELEGATION_ENDED_TEXT)
+            return delegation.work_order_section(self.store, wo_id, text)
+
     # non-consequential handlers
 
     def _status(self, caller: tickets.Caller, args: dict[str, Any]) -> str:
@@ -302,8 +335,7 @@ class GateServer:
                                 "must present the delegation id from its launch prompt: "
                                 "status(delegation_id=...)")
         if delegation_id is not None:
-            if caller.host == tickets.CODEX:
-                self._check_codex_parent(caller, delegation_id)
+            self._check_parent(caller, delegation_id)
             delegation.bind_child(self.store, caller.frame, delegation_id)
         try:
             read = self.issuer.read_work_order(caller.frame)
@@ -315,15 +347,22 @@ class GateServer:
             self._witness_cell[caller.frame] = caller.turn_key
         return (f"work order {read.ref}\nwitness: {read.witness}\nCall open_gate with this "
                 f"witness, then cite {read.ref} in the claim of each consequential call.\n"
-                f"--- work order text ---\n{read.text}")
+                f"{self._section(read.ref, read.text)}")
 
-    def _check_codex_parent(self, caller: tickets.Caller, delegation_id: str) -> None:
+    def _check_parent(self, caller: tickets.Caller, delegation_id: str) -> None:
+        """A Codex child's parent thread must be the delegating frame and a Claude
+        Code child's session the delegating session; bind_child refuses an
+        unknown delegation id."""
         with self.store.lock():
-            records = self.store.read(workorder.DELEGATIONS, {}).values()
-            record = next((r for r in records if r["delegation_id"] == delegation_id), None)
-        if record is not None and record["caller_frame"] != caller.parent_frame:
+            record = delegation.find(self.store.read(workorder.DELEGATIONS, {}), delegation_id)
+        if record is None:
+            return
+        if caller.host == tickets.CODEX and record["caller_frame"] != caller.parent_frame:
             raise ToolError("delegation-parent-mismatch", "this delegation was made by another "
                             "thread than your parent thread")
+        if caller.host == tickets.CLAUDE and record["caller_session"] != caller.session_id:
+            raise ToolError("delegation-parent-mismatch",
+                            "this delegation was made in another session")
 
     def _open_gate(self, caller: tickets.Caller, args: dict[str, Any]) -> str:
         if (caller.host == tickets.CODEX
@@ -333,7 +372,9 @@ class GateServer:
                                 turn_key=caller.turn_key)
         if result.status != gate.OPEN:
             raise ToolError("denied", result.message)
-        return f"{result.message}\n--- work order text ---\n{result.text}"
+        if result.ref is None or result.text is None:
+            raise RuntimeError("an open gate result carries its work order reference and text")
+        return f"{result.message}\n{self._section(result.ref, result.text)}"
 
     def _cite(self, caller: tickets.Caller, args: dict[str, Any]) -> str:
         warning = citations.warning_text(citations.check(self.store, caller.frame,
@@ -352,29 +393,34 @@ class GateServer:
     # consequential handlers (gate taken)
 
     def _write_file(self, caller: tickets.Caller, args: dict[str, Any], target: Path) -> str:
-        try:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            with open(target, "w", encoding="utf-8", newline="") as fh:
-                fh.write(args["content"])
-        except OSError as e:
-            raise ToolError("write-failed", f"write_file: {e}") from e
+        with sandbox.project_lock(self.state_root):
+            target = self._target("write_file", args["path"])
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with _open_nofollow(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, "w") as fh:
+                    fh.write(args["content"])
+            except OSError as e:
+                raise ToolError("write-failed", f"write_file: {e}") from e
         return f"wrote {target.relative_to(self.project)}"
 
     def _edit_file(self, caller: tickets.Caller, args: dict[str, Any], target: Path) -> str:
         old = args["old"]
         if not old:
             raise ToolError("bad-arguments", "edit_file: old must be non-empty")
-        try:
-            with open(target, encoding="utf-8", newline="") as fh:
-                text = fh.read()
-            count = text.count(old)
-            if count != 1:
-                raise ToolError("old-not-unique", f"edit_file: old occurs {count} times in "
-                                f"{target.relative_to(self.project)}; it must occur exactly once")
-            with open(target, "w", encoding="utf-8", newline="") as fh:
-                fh.write(text.replace(old, args["new"], 1))
-        except OSError as e:
-            raise ToolError("edit-failed", f"edit_file: {e}") from e
+        with sandbox.project_lock(self.state_root):
+            target = self._target("edit_file", args["path"])
+            try:
+                with _open_nofollow(target, os.O_RDONLY, "r") as fh:
+                    text = fh.read()
+                count = text.count(old)
+                if count != 1:
+                    raise ToolError("old-not-unique", f"edit_file: old occurs {count} times in "
+                                    f"{target.relative_to(self.project)}; it must occur "
+                                    "exactly once")
+                with _open_nofollow(target, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, "w") as fh:
+                    fh.write(text.replace(old, args["new"], 1))
+            except OSError as e:
+                raise ToolError("edit-failed", f"edit_file: {e}") from e
         return f"edited {target.relative_to(self.project)}"
 
     def _mutate_shell(self, caller: tickets.Caller, args: dict[str, Any], target: None) -> str:
@@ -382,7 +428,8 @@ class GateServer:
                                               SHELL_TIMEOUT_SECONDS, MAX_OUTPUT_BYTES))
 
     def _delegate(self, caller: tickets.Caller, args: dict[str, Any], target: None) -> str:
-        d = delegation.delegate(self.store, caller.frame, args["claim"], args["work_order"])
+        d = delegation.delegate(self.store, caller.frame, args["claim"], args["work_order"],
+                                caller_session=caller.session_id)
         return (f"delegated work order {d.ref}\ndelegation id: {d.delegation_id}\nPut this "
                 "delegation id in the subagent's launch prompt; its first status call must "
                 "pass it as delegation_id.")

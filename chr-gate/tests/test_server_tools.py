@@ -1,8 +1,11 @@
+import errno
 import itertools
 import json
 import os
 import re
+import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -13,6 +16,7 @@ from chrgate.server.tools import (DELEGATION_ENDED_TEXT, NONCE_LABEL, TOOLS, Gat
 SESSION = "session-A"
 CHILD = "agent-child"
 CHILD_TEXT = "Write the parser tests only."
+REPO = Path(__file__).resolve().parents[2]
 _ids = itertools.count()
 
 
@@ -32,19 +36,25 @@ def server(project):
 class Claude:
     """Claude Code calls: a PreToolUse ticket per call, matched by toolUseId."""
 
-    def __init__(self, server, agent=None):
-        self.server, self.agent = server, agent
+    def __init__(self, server, agent=None, session=SESSION):
+        self.server, self.agent, self.session = server, agent, session
 
     def __call__(self, tool, args, turn="batch-1", ticket=True):
         tool_use_id = f"toolu_{next(_ids)}"
         if ticket:
-            tickets.put_ticket(self.server.store, tool_use_id, tool=tool, session_id=SESSION,
+            tickets.put_ticket(self.server.store, tool_use_id, tool=tool, session_id=self.session,
                                turn_key=turn, agent_id=self.agent)
         return self.server.call(tool, args, {tickets.CLAUDE_TOOL_USE_ID: tool_use_id})
 
 
-def codex(server, tool, args, cell, thread="thread-main", parent=None):
-    meta = {"threadId": thread, "itemId": cell, "callId": f"exec-{cell}"}
+def codex(server, tool, args, cell, thread="thread-main", parent=None, ticket=True):
+    """Codex calls: a PreToolUse ticket per call under its own callId (the hook
+    tool_use_id); frame and cell come from _meta."""
+    call_id = f"exec-{next(_ids)}"
+    if ticket:
+        tickets.put_ticket(server.store, call_id, tool=tool, session_id=parent or thread,
+                           turn_key=f"turn-{cell}", agent_id=thread if parent else None)
+    meta = {"threadId": thread, "itemId": cell, "callId": call_id}
     if parent is not None:
         meta[tickets.CODEX_TURN_METADATA] = {"parent_thread_id": parent}
     return server.call(tool, args, meta, "codex-mcp-client")
@@ -320,6 +330,44 @@ def test_codex_call_without_item_id_refused(server, active_wo, project):
         assert server.store.read(workorder.FRAMES, {}) == {}
 
 
+def test_codex_call_without_ticket_refused(server, active_wo, project):
+    out = codex(server, "status", {}, "c1", ticket=False)
+    assert out.is_error and "witness:" not in out.text, out.text
+    assert "did not ticket this Codex call" in out.text and "/hooks" in out.text, out.text
+    args = {"claim": claim(active_wo.ref), "path": "a.txt", "content": "x"}
+    out = codex(server, "write_file", args, "c2", ticket=False)
+    assert out.is_error and "did not ticket this Codex call" in out.text, out.text
+    refusal = "refused-codex-no-ticket"
+    assert [(e["kind"], e["frame"], e["outcome"]) for e in events.read_all(server.store)
+            if e["kind"].startswith("tool:")] == [("tool:status", "thread-main", refusal),
+                                                  ("tool:write_file", "thread-main", refusal)]
+    assert not (project / "a.txt").exists()
+    with server.store.lock():
+        assert server.store.read(workorder.FRAMES, {}) == {}
+
+
+def test_codex_call_with_ticket_attributed(store):
+    meta = {"threadId": "thread-child", "itemId": "ctc_1", "callId": "exec-A",
+            tickets.CODEX_TURN_METADATA: {"parent_thread_id": "thread-main"}}
+    tickets.put_ticket(store, "exec-A", tool="status", session_id="thread-main",
+                       turn_key="turn-1", agent_id="thread-child")
+    caller = tickets.attribute(store, "status", meta, "codex-mcp-client")
+    assert caller == tickets.Caller(tickets.CODEX, "thread-child", "ctc_1", mediated=True,
+                                    subagent=True, parent_frame="thread-main")
+    with store.lock():
+        assert "exec-A" not in store.read(tickets.TICKETS, {})  # consumed
+    with pytest.raises(tickets.AttributionRefused) as e:
+        tickets.attribute(store, "status", meta, "codex-mcp-client")
+    assert e.value.code == tickets.CODEX_NO_TICKET and e.value.frame == "thread-child"
+    tickets.put_ticket(store, "exec-B", tool="open_gate", session_id="thread-main",
+                       turn_key="turn-1")
+    with pytest.raises(tickets.AttributionRefused) as e:  # a ticket for another tool
+        tickets.attribute(store, "status", {**meta, "callId": "exec-B"}, "codex-mcp-client")
+    assert e.value.code == tickets.CODEX_NO_TICKET
+    with store.lock():
+        assert "exec-B" in store.read(tickets.TICKETS, {})
+
+
 def test_codex_research_cells_count_turns(server, active_wo, project):
     args = {"claim": claim(active_wo.ref), "path": "a.txt", "content": "x"}
     witness = witness_of(codex(server, "status", {}, "c-read"))
@@ -409,7 +457,7 @@ def test_subagent_work_order_read_requires_delegation_id(server, active_wo, wo_t
     out = child("status", {"delegation_id": delegation_id}, turn="c-read-2")
     assert not out.is_error, out.text
     assert "work order wo:DW-" in out.text and body(out).endswith(CHILD_TEXT)
-    assert wo_text not in out.text
+    assert f"(approved by the user) ---\n{wo_text}\n" in out.text
     assert not child("status", {}, turn="c-read-3").is_error  # registered now
     out = codex(server, "status", {}, "x1", thread="thread-child", parent="thread-main")
     assert out.is_error and "delegation id" in out.text
@@ -428,6 +476,92 @@ def test_lapsed_delegation_message(server, active_wo, store):
     assert out.is_error and body(out) == DELEGATION_ENDED_TEXT
     out = child("status", {}, turn="c-read-2")
     assert out.is_error and body(out) == DELEGATION_ENDED_TEXT
+
+
+def test_status_delegation_lapsed_between_read_and_render(server, active_wo, store, monkeypatch):
+    delegation_id = _delegated(server, active_wo)
+    read = server.issuer.read_work_order
+
+    def lapsing(frame):  # the principal is revised after the read, before the render
+        result = read(frame)
+        plan_id = workorder.propose(store, "revised")
+        workorder.activate(store, plan_id, f"approve {plan_id}")
+        return result
+
+    monkeypatch.setattr(server.issuer, "read_work_order", lapsing)
+    out = Claude(server, agent=CHILD)("status", {"delegation_id": delegation_id}, turn="c-read")
+    assert out.is_error and body(out) == DELEGATION_ENDED_TEXT, out.text
+    last = [e for e in events.read_all(server.store) if e["kind"].startswith("tool:")][-1]
+    assert last["outcome"] == "refused-delegation-ended"
+
+
+def test_revoke_clears_gates_and_ends_delegated_children(server, active_wo, store, project):
+    delegation_id = _delegated(server, active_wo)
+    parent, child = Claude(server), Claude(server, agent=CHILD)
+    opened(parent, read_turn="t-read-2", open_turn="t-open-2")
+    out = child("status", {"delegation_id": delegation_id}, turn="c-read")
+    ref = re.search(r"work order (wo:DW-[0-9a-f]+\.v1)", out.text).group(1)
+    assert not child("open_gate", {"witness": witness_of(out)}, turn="c-open").is_error
+    assert gate.gate_is_current(store, SESSION) and gate.gate_is_current(store, CHILD)
+
+    workorder.revoke(store, active_wo.ref, f"revoke {active_wo.ref}")
+
+    with store.lock():
+        recs = store.read(workorder.FRAMES, {})
+    for frame in (SESSION, CHILD):
+        assert recs[frame]["gate"] is None and recs[frame]["witness_sha256"] is None, frame
+        assert not gate.gate_is_current(store, frame), frame
+    out = parent("write_file", {"claim": claim(active_wo.ref), "path": "a.txt", "content": "x"},
+                 turn="t-act")
+    assert out.is_error, out.text
+    out = child("write_file", {"claim": f"under {ref}", "path": "b.txt", "content": "x"},
+                turn="c-act")
+    assert out.is_error and body(out) == DELEGATION_ENDED_TEXT
+    assert not (project / "a.txt").exists() and not (project / "b.txt").exists()
+    out = child("status", {}, turn="c-read-2")
+    assert out.is_error and body(out) == DELEGATION_ENDED_TEXT
+
+
+BOUNDS_RULE = ("Your task is limited by every inherited work order above. Where they disagree, "
+               "the inherited order governs: stop and report to your assigner.")
+PROHIBITION = "Never touch the deploy keys under secrets/."
+
+
+def _status_head(ref, witness):
+    return (f"work order {ref}\nwitness: {witness}\nCall open_gate with this witness, then cite "
+            f"{ref} in the claim of each consequential call.\n")
+
+
+def test_child_status_and_open_gate_carry_principal_text_before_task(server, store):
+    principal_text = f"Fix the parser in src/parser.py. {PROHIBITION}"
+    plan_id = workorder.propose(store, principal_text)
+    principal = workorder.activate(store, plan_id, f"approve {plan_id}")
+    assert PROHIBITION not in CHILD_TEXT
+    delegation_id = _delegated(server, principal)
+    child = Claude(server, agent=CHILD)
+    status = child("status", {"delegation_id": delegation_id}, turn="c-read")
+    assert not status.is_error, status.text
+    ref = re.search(r"work order (wo:DW-[0-9a-f]+\.v1)", status.text).group(1)
+    witness = witness_of(status)
+    section = (f"--- inherited bounds: {principal.ref} (approved by the user) ---\n"
+               f"{principal_text}\n{BOUNDS_RULE}\n"
+               f"--- work order text (your task, written by your assigner) ---\n{CHILD_TEXT}")
+    assert body(status) == _status_head(ref, witness) + section
+    gate_out = child("open_gate", {"witness": witness}, turn="c-open")
+    assert not gate_out.is_error, gate_out.text
+    assert body(gate_out) == f"gate open under {ref}\n" + section
+    for text in (body(status), body(gate_out)):
+        assert text.index(principal_text) < text.index(CHILD_TEXT)
+
+
+def test_principal_status_text_unchanged(server, active_wo, wo_text):
+    call = Claude(server)
+    status = call("status", {}, turn="t-read")
+    witness = witness_of(status)
+    assert body(status) == (_status_head(active_wo.ref, witness)
+                            + f"--- work order text ---\n{wo_text}")
+    out = call("open_gate", {"witness": witness}, turn="t-open")
+    assert body(out) == f"gate open under {active_wo.ref}\n--- work order text ---\n{wo_text}"
 
 
 def test_tool_results_carry_fresh_nonce(server, active_wo):
@@ -488,7 +622,7 @@ def test_delegated_status_without_turn_key_refused_before_binding(server, active
     with server.store.lock():
         delegations = server.store.read(workorder.DELEGATIONS, {})
         frames = server.store.read(workorder.FRAMES, {})
-    record = next(r for r in delegations.values() if r["delegation_id"] == delegation_id)
+    record = delegation.find(delegations, delegation_id)
     assert record["caller_frame"] == SESSION  # the parent check would pass: bind_child is reachable
     assert "thread-child" not in frames
     caller = tickets.Caller(tickets.CODEX, "thread-child", None, mediated=True, subagent=True,
@@ -504,7 +638,146 @@ def test_delegated_status_without_turn_key_refused_before_binding(server, active
         assert "thread-child" not in server.store.read(workorder.FRAMES, {})
         after = server.store.read(workorder.DELEGATIONS, {})
     assert after == delegations
-    record = next(r for r in after.values() if r["delegation_id"] == delegation_id)
+    record = delegation.find(after, delegation_id)
     assert record["child_frame"] is None and record["bound_at"] is None
     assert "thread-child" not in server._witness_cell
     assert not [e for e in log if e["kind"] == "bind_child" and e["frame"] == "thread-child"]
+
+
+def test_oserror_becomes_internal_error_refusal(server, monkeypatch):
+    def broken(self, caller, args):
+        raise OSError(5, "Input/output error")
+
+    monkeypatch.setattr(GateServer, "_status", broken)
+    out = Claude(server)("status", {})
+    assert out.is_error and re.search(NONCE_LABEL + r"ctx:[0-9a-f]{16}$", out.text), out.text
+    last = events.read_all(server.store)[-1]
+    assert (last["kind"], last["outcome"]) == ("tool:status", "refused-internal-error")
+
+
+def _swap_after_take_gate(monkeypatch, server, sub):
+    """After the first path check (take_gate runs after it), replace the project
+    directory SUB with a symlink to the state root."""
+    take = gate.take_gate
+
+    def swapping(*args, **kwargs):
+        result = take(*args, **kwargs)
+        shutil.rmtree(sub)
+        os.symlink(server.state_root, sub)
+        return result
+
+    monkeypatch.setattr(gate, "take_gate", swapping)
+
+
+def _fresh_dir(sub):
+    if sub.is_symlink():
+        sub.unlink()
+    sub.mkdir()
+
+
+def test_write_file_rechecks_path_under_project_lock(server, active_wo, project, monkeypatch):
+    call = Claude(server)
+    opened(call)
+    sub = project / "sub"
+    _swap_after_take_gate(monkeypatch, server, sub)
+    for n in range(20):
+        _fresh_dir(sub)
+        out = call("write_file", {"claim": claim(active_wo.ref), "path": "sub/x.txt",
+                                  "content": "x"})
+        assert out.is_error and "outside the project root" in out.text, (n, out.text)
+        assert not (server.state_root / "x.txt").exists(), n
+
+
+def test_edit_file_rechecks_path_under_project_lock(server, active_wo, project, monkeypatch):
+    call = Claude(server)
+    opened(call)
+    sub = project / "sub"
+    decoy = server.state_root / "e.txt"
+    decoy.write_text("old")
+    _swap_after_take_gate(monkeypatch, server, sub)
+    for n in range(20):
+        _fresh_dir(sub)
+        (sub / "e.txt").write_text("old")
+        out = call("edit_file", {"claim": claim(active_wo.ref), "path": "sub/e.txt",
+                                 "old": "old", "new": "new"})
+        assert out.is_error and "outside the project root" in out.text, (n, out.text)
+        assert decoy.read_text() == "old", n
+
+
+def test_write_file_refuses_symlinked_final_component(server, active_wo, project, isolated_env,
+                                                      monkeypatch):
+    call = Claude(server)
+    opened(call)
+    sub = project / "sub"
+    sub.mkdir()
+    resolved = Path(os.path.realpath(sub))
+    decoy = isolated_env / "decoy.txt"
+    decoy.write_text("orig")
+    mkdir = Path.mkdir
+
+    def planting(self, *args, **kwargs):  # the parent mkdir runs after every path check
+        mkdir(self, *args, **kwargs)
+        if self == resolved and not os.path.lexists(resolved / "a.txt"):
+            os.symlink(decoy, resolved / "a.txt")
+
+    monkeypatch.setattr(Path, "mkdir", planting)
+    out = call("write_file", {"claim": claim(active_wo.ref), "path": "sub/a.txt",
+                              "content": "pwned"})
+    monkeypatch.undo()
+    assert out.is_error and body(out).startswith("write_file: "), out.text
+    assert decoy.read_text() == "orig"
+    last = [e for e in events.read_all(server.store) if e["kind"].startswith("tool:")][-1]
+    assert last["outcome"] == "refused-write-failed"
+
+
+def test_edit_file_refuses_symlink_at_open(server, active_wo, project, isolated_env, monkeypatch):
+    call = Claude(server)
+    opened(call)
+    outside = isolated_env / "outside.txt"
+    outside.write_text("old outside")
+    (project / "e.txt").write_text("old")
+    real_target = GateServer._target
+    cached = []
+
+    def planting(self, tool, path):  # both path checks pass; the open meets the symlink
+        if not cached:
+            target = real_target(self, tool, path)
+            link = target.with_name("e.txt.link")
+            os.symlink(outside, link)
+            os.replace(link, target)
+            cached.append(target)
+        return cached[0]
+
+    monkeypatch.setattr(GateServer, "_target", planting)
+    out = call("edit_file", {"claim": claim(active_wo.ref), "path": "e.txt", "old": "old",
+                             "new": "new"})
+    assert out.is_error and body(out).startswith("edit_file: "), out.text
+    assert os.strerror(errno.ELOOP) in out.text and "outside the project" not in out.text
+    assert outside.read_text() == "old outside"
+    last = [e for e in events.read_all(server.store) if e["kind"].startswith("tool:")][-1]
+    assert last["outcome"] == "refused-edit-failed"
+
+
+def test_server_refuses_inside_own_source_tree():
+    server = GateServer(REPO)
+    probe = REPO / "chrgate-self-hosting-probe.txt"
+    out = server.call("status", {})
+    assert out.is_error and "cannot govern its own source tree" in out.text, out.text
+    out = Claude(server)("write_file", {"claim": "under wo:W-0.v1", "path": probe.name,
+                                        "content": "x"})
+    assert out.is_error and "cannot govern its own source tree" in out.text, out.text
+    assert not probe.exists()
+    last = [e for e in events.read_all(server.store) if e["kind"].startswith("tool:")][-1]
+    assert last["outcome"] == "refused-self-hosting"
+
+
+def test_claude_child_from_other_session_refused(server, active_wo):
+    delegation_id = _delegated(server, active_wo)
+    out = Claude(server, agent=CHILD, session="session-B")(
+        "status", {"delegation_id": delegation_id}, turn="c-read")
+    assert out.is_error and "made in another session" in out.text, out.text
+    with server.store.lock():
+        assert CHILD not in server.store.read(workorder.FRAMES, {})
+    out = Claude(server, agent=CHILD)("status", {"delegation_id": delegation_id}, turn="c-read-2")
+    assert not out.is_error, out.text  # the same-session control binds
+    assert body(out).endswith(CHILD_TEXT)

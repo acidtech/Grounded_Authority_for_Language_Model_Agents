@@ -1,4 +1,4 @@
-"""The witness issuer (C32 Invariant 2; Appendix A read_active_authority).
+"""The witness issuer (C33 Invariant 2; Appendix A read_active_authority).
 
 WitnessIssuer lives in the MCP server process and is the ONLY witness issuer.
 read_work_order(frame) returns the governing work order's full text and the

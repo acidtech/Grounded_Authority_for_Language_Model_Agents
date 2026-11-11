@@ -2,9 +2,10 @@
 host-format decision on stdout (nothing when there is nothing to say), exit 0.
 
 A hook error is logged to events.jsonl (kind hook_error) and stderr; it fails
-closed for consequential chr-gate tools and built-in writes (deny) and open for
-everything else. A payload that cannot be parsed at all is denied when it is
-not known to be a non-PreToolUse event.
+closed (deny) for consequential chr-gate tools and for built-ins outside the
+host adapter's read-only allowlist, and open for everything else. A payload that cannot be parsed at all is denied when it is
+not known to be a non-PreToolUse event. In a project that holds the chrgate
+package itself (paths.self_hosted) every PreToolUse is denied.
 """
 
 import argparse
@@ -12,7 +13,7 @@ import json
 import sys
 from types import ModuleType
 
-from chrgate.core import events
+from chrgate.core import events, paths
 from chrgate.core.store import Store
 from chrgate.hooks import engine
 from chrgate.hooks.adapters import PRE_TOOL_EVENT, claude_code, codex, deny_json, render
@@ -62,7 +63,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="chrgate-hook", description=__doc__)
     parser.add_argument("--host", required=True, choices=sorted(ADAPTERS))
     args = parser.parse_args(argv)
-    out = run(args.host, sys.stdin.read(), Store.for_project())
+    raw = sys.stdin.read()
+    if paths.self_hosted(paths.project_root()):
+        out = (deny_json(PRE_TOOL_EVENT, paths.SELF_HOSTED_TEXT)
+               if _hook_event(raw) in (None, PRE_TOOL_EVENT) else "")
+    else:
+        out = run(args.host, raw, Store.for_project())
     if out:
         sys.stdout.write(out + "\n")
     return 0

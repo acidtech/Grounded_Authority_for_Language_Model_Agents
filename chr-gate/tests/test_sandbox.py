@@ -1,7 +1,8 @@
 """The research and mutate bwrap profiles. The project and the state root
-live under the suite's /tmp basetemp, the case where a read-only bind only
-holds because it comes after --bind /tmp /tmp. These tests need bwrap and
-fail (never skip) without it."""
+live under the suite's /tmp basetemp, the case where their binds only hold
+because they come after the /tmp mount: --tmpfs /tmp in research_shell,
+--bind /tmp /tmp in mutate_shell. These tests need bwrap and fail (never
+skip) without it."""
 
 import inspect
 import json
@@ -23,7 +24,7 @@ from chrgate.server import sandbox
 from chrgate.server.sandbox import (LOCK_NAME, MANIFEST_NAME, MASKED, MASKED_DIRS, MASKED_FILES,
                                     FolderUnreadable, GitConfigUnreadable, GitFileUnsupported,
                                     ProtectedPathMissing, ProtectedPathSymlink, _mutate_argv,
-                                    _project_lock, ensure_protected, protected_paths,
+                                    ensure_protected, project_lock, protected_paths,
                                     read_only_paths, research_argv, run, run_mutate)
 from chrgate.server.tools import SANDBOX_ERRORS
 
@@ -73,6 +74,13 @@ def _at(argv, flag, path) -> int:
     raise AssertionError(f"{triple} not in {argv}")
 
 
+def _pair(argv, flag, path) -> int:
+    for i in range(len(argv) - 1):
+        if argv[i:i + 2] == [flag, path]:
+            return i
+    raise AssertionError(f"{[flag, path]} not in {argv}")
+
+
 def _snap(targets):
     out = {}
     for p in targets:
@@ -92,13 +100,32 @@ def test_research_cannot_write_project(project, state):
     assert not (project / "new.txt").exists()
 
 
-def test_research_can_write_tmp(isolated_env, project, state):
+def test_research_can_write_tmp(project, state):
+    r = _sh(research_argv(project, state, "echo hi > /tmp/f.txt && cat /tmp/f.txt"))
+    assert r.rc == 0, r.stderr
+    assert r.stdout == "hi\n"
+
+
+def test_research_tmp_is_private(isolated_env, project, state):
     other = isolated_env / "elsewhere"
     other.mkdir()
-    target = other / "f.txt"
-    r = _sh(research_argv(project, state, f"echo hi > {shlex.quote(str(target))}"))
+    (other / "host.txt").write_text("host secret\n")
+    written = other / "written.txt"
+    q = shlex.quote
+    r = _sh(research_argv(project, state, (
+        f"echo ran; cat {q(str(other / 'host.txt'))}; "
+        f"mkdir -p {q(str(other))} && echo inside > {q(str(written))} && cat {q(str(written))}")))
+    assert "ran" in r.stdout, r.stderr
+    assert "host secret" not in r.stdout, r.stdout
+    assert "inside" in r.stdout, r.stderr
+    assert not written.exists()
+    assert sorted(os.listdir(other)) == ["host.txt"]
+
+
+def test_research_run_is_empty(project, state):
+    r = _sh(research_argv(project, state, "ls -A /run"))
     assert r.rc == 0, r.stderr
-    assert target.read_text() == "hi\n"
+    assert r.stdout == "", r.stdout
 
 
 def test_research_has_no_network(project, state):
@@ -292,9 +319,10 @@ def test_ensure_protected_creates_missing_only(isolated_env):
 
 def test_argv_builders(project, state):
     argv = research_argv(project, state, "true")
-    tmp = _at(argv, "--bind", "/tmp")
-    assert _at(argv, "--ro-bind", project) > tmp
-    assert _at(argv, "--ro-bind", state) > tmp
+    private = max(_pair(argv, "--tmpfs", "/tmp"), _pair(argv, "--tmpfs", "/run"))
+    assert _at(argv, "--ro-bind", project) > private
+    assert _at(argv, "--ro-bind", state) > private
+    assert not any(argv[i:i + 3] == ["--bind", "/tmp", "/tmp"] for i in range(len(argv) - 2))
     assert "--unshare-net" in argv
     assert argv[-4:] == ["--", "bash", "-c", "true"]
 
@@ -865,7 +893,7 @@ def test_unreadable_dir_after_run_warns(project, state):
 def test_lock_file_masked_in_both_shells(project, state):
     lock = state.resolve() / LOCK_NAME
     command = f"flock -n -x {shlex.quote(str(lock))} true; echo rc=$?"
-    with _project_lock(state.resolve()):
+    with project_lock(state):
         r = _sh(research_argv(project, state, command))
     assert "rc=0" in r.stdout, (r.stdout, r.stderr)
     r = _mutate(project, state, command)
@@ -908,5 +936,20 @@ def test_research_runs_without_store_lock_file(isolated_env):
 def test_sandbox_public_surface():
     public = {name for name, fn in inspect.getmembers(sandbox, inspect.isfunction)
               if fn.__module__ == sandbox.__name__ and not name.startswith("_")}
-    assert public == {"protected_paths", "missing_protected", "ensure_protected",
+    assert public == {"protected_paths", "missing_protected", "ensure_protected", "project_lock",
                       "read_only_paths", "research_argv", "run", "run_mutate"}
+
+
+def test_nested_git_skips_vanished_directory(isolated_env, monkeypatch):
+    root = isolated_env / "project"
+    for rel in ("gone", "keep"):
+        (root / rel / ".git").mkdir(parents=True)
+    real = os.scandir
+
+    def scandir(path):
+        if Path(path).name == "gone":
+            raise FileNotFoundError(2, "No such file or directory", str(path))
+        return real(path)
+
+    monkeypatch.setattr(sandbox.os, "scandir", scandir)
+    assert sandbox._nested_git(root) == ([root / "keep" / ".git"], [])

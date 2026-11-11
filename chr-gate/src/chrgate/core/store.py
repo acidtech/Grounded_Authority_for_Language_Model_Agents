@@ -1,7 +1,7 @@
 """Locked, atomic JSON state under one state root.
 
 Every core operation runs inside Store.lock(), an exclusive fcntl lock on the
-state root's .lock file (C32 Appendix A serialized_frame_state), so the MCP
+state root's .lock file (C33 Appendix A serialized_frame_state), so the MCP
 server, hooks and tests serialize across processes and threads. JSON files are
 replaced atomically (temp file in the same directory, fsync, os.replace), so no
 reader ever sees a partial file. Core operations make every check before their

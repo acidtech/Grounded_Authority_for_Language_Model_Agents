@@ -25,6 +25,14 @@ from chrgate.hooks.engine import PRE_TOOL, Decision, Event
 SERVER_ENV = "CHR_GATE_SERVER"
 DEFAULT_SERVER = "chr-gate"
 PRE_TOOL_EVENT = "PreToolUse"
+MCP_PREFIX = "mcp__"
+
+
+def builtin_write(host_tool: str, read_only: frozenset[str]) -> bool:
+    """True when HOST_TOOL is a host built-in (its name does not start with
+    mcp__) that READ_ONLY does not list: the hook denies it, so a built-in nobody
+    has classified is denied too. Tools of other MCP servers are not built-ins."""
+    return not host_tool.startswith(MCP_PREFIX) and host_tool not in read_only
 
 
 def chr_gate_tool(host_tool: str) -> str | None:

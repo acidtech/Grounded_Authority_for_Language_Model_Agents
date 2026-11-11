@@ -4,14 +4,27 @@ State root: ${XDG_STATE_HOME:-~/.local/state}/chr-gate/PROJECTKEY/, where
 PROJECTKEY is the first 16 hex characters of sha256 of the realpath of the
 project root. The project root is CHR_GATE_PROJECT when set, else the process
 working directory. The state root lives outside the project tree.
+
+self_hosted(project): the chrgate package itself lies inside the project; the
+server and the hooks then refuse to govern it (C33 3.10).
 """
 
 import hashlib
 import os
 from pathlib import Path
 
+import chrgate
+
 PROJECT_ENV = "CHR_GATE_PROJECT"
 STATE_DIR_NAME = "chr-gate"
+SELF_HOSTED_TEXT = ("chr-gate cannot govern its own source tree (C33 3.10); install a "
+                    "non-editable copy or use another project")
+
+
+def self_hosted(project: str | os.PathLike[str]) -> bool:
+    """The chrgate package directory lies inside the realpath of PROJECT."""
+    package = Path(chrgate.__file__).resolve().parent
+    return package.is_relative_to(os.path.realpath(project))
 
 
 def project_root() -> Path:

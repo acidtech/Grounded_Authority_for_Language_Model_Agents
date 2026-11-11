@@ -1,4 +1,4 @@
-"""Gate timing policy: config.json in the state root (C32 Appendix A).
+"""Gate timing policy: config.json in the state root (C33 Appendix A).
 
 The state root is outside the project tree and read-only to the governed
 agent's mutate sandbox, so only the principal sets the policy. Keys:

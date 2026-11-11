@@ -71,7 +71,9 @@ hits. The raw hook stdin and parsed payload are kept as they are.
   `experimental_use_unified_exec_tool=false`, `features.apply_patch_freeform=false`;
   C: A plus `sandbox_mode="read-only"`; D: A plus a `model_catalog_json` the
   runner derives from `codex debug models` with `shell_type="disabled"` and no
-  `apply_patch_tool_type`).
+  `apply_patch_tool_type`). `claude/settings.json`, `claude/mcp.json` and
+  `codex/probe.toml` are templates: the runners render `@KIT@` (this directory)
+  and `@UV@` (uv on PATH) into `$CHR_SPIKE_OUT` before starting the host.
 - `run_claude_probe.sh`, `run_codex_probe.sh`: create the scratch git project,
   record the host version, run the measurements, summarize the transcripts named
   in hook payloads with `transcript_summary.py` (no copies), and print where the
@@ -109,12 +111,12 @@ and no stream item carries the denial message.
 ## Exact user commands
 
 The sandbox has no authenticated hosts, so the user runs these in their own `!`
-shell, batch mode first:
+shell from the repository root, batch mode first:
 
-    ! bash /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/run_claude_probe.sh
-    ! bash /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/run_codex_probe.sh
-    ! bash /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/run_claude_probe.sh compact
-    ! bash /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/run_codex_probe.sh compact
+    ! bash scripts/spike/run_claude_probe.sh
+    ! bash scripts/spike/run_codex_probe.sh
+    ! bash scripts/spike/run_claude_probe.sh compact
+    ! bash scripts/spike/run_codex_probe.sh compact
 
 The `compact` mode starts an interactive session with the same configuration:
 let it answer its one-line prompt, type `/compact`, wait, then exit (`/exit` in

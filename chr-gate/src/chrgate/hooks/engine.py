@@ -1,24 +1,39 @@
 """All chrgate-hook behaviour, on neutral events (adapters build them).
 
-- pre_tool: deny host built-in writes (second line of defence behind host
-  config). For a consequential chr-gate tool, deny early when the caller is a
+- pre_tool: deny every host built-in the adapter does not list as read-only
+  (Event.builtin_write; second line of defence behind host config) and log one
+  event for it (kind builtin_denied, outcome denied, ref the host tool). A
+  Codex pre_tool whose turn_id differs from the key of the frame's open batch
+  first ends that batch the same way batch_end does, so the first call of the
+  new turn sees the gate the ended batch closed. For a
+  consequential chr-gate tool, deny early when the caller is a
   subagent with no delegated work order (read-only) or when no gate is current
   (gate.gate_is_current: the check never consumes the gate; only the server's
   take_gate does). Record the call in the frame's open batch (Claude Code: a
-  hook-minted batch key B-..., Codex: turn_id) and, on Claude Code, write the
-  tool_use_id-keyed ticket (tickets.put_ticket) carrying the batch key and the
+  hook-minted batch key B-..., Codex: turn_id) and write the
+  tool_use_id-keyed ticket (tickets.put_ticket; the Codex tool_use_id is the
+  server's _meta.callId) carrying the batch key and the
   subagent agent_id. When the host's assistant text is readable in time
   (Codex), check the citations written since the last check and queue
   warnings for the frame.
 - post_tool: issue a context nonce for the tool result (additionalContext).
-- batch_end (Claude Code PostToolBatch; Codex Stop and UserPromptSubmit as
-  backstops): a batch that held a consequential chr-gate call, or whose gate
+- batch_end (Claude Code PostToolBatch; Stop and UserPromptSubmit as
+  backstops on both hosts): a batch that held a consequential chr-gate call, or whose gate
   the server consumed, ends with close_gate; any other Claude Code batch is
-  reported with gate.note_turn (Codex turns are reported by the server).
-- user_prompt: 'approve P-xxxxxxxx' activates exactly that proposal.
+  reported with gate.note_turn (Codex turns are reported by the server). The
+  tickets of the ended batch that the server never took (a call the host
+  refused after PreToolUse) are deleted (tickets.drop_tickets). A new Codex
+  turn_id at pre_tool ends the frame's previous open batch the same way.
+- user_prompt: a prompt that is exactly 'approve P-xxxxxxxx' (surrounding
+  whitespace aside) activates that proposal, and one that is exactly
+  'revoke wo:ID.vN' naming the active principal work order revokes it
+  (workorder.revoke; another reference revokes nothing and gets a notice naming
+  the active one); a prompt that only mentions either phrase acts on nothing and
+  gets a notice; a subagent frame never approves or revokes.
 - stop: check the final assistant text's citations; warnings are queued.
-- compact: new_epoch for the frame, then resurface the work-order TEXT with
-  the read_work_order instruction; no witness ever appears in hook output.
+- compact: new_epoch and nonces.clear for the frame, then resurface the work-order TEXT with
+  the read_work_order instruction (a delegated frame gets its inherited bounds first,
+  delegation.work_order_section); no witness ever appears in hook output.
 - subagent_start: tell the child how to bind its delegation (the server binds
   it on the child's first status call, findings item 3); until then the child
   is read-only.
@@ -34,7 +49,7 @@ import secrets
 from dataclasses import dataclass
 from typing import Any
 
-from chrgate.core import citations, gate, nonces, workorder
+from chrgate.core import citations, delegation, events, gate, nonces, workorder
 from chrgate.core.store import Store
 from chrgate.hooks import transcript
 from chrgate.server import tickets
@@ -52,7 +67,11 @@ KINDS = (PRE_TOOL, POST_TOOL, BATCH_END, USER_PROMPT, STOP, COMPACT, SUBAGENT_ST
 QUEUE = "hook_queue.json"      # {frame: [text, ...]}
 BATCHES = "hook_batches.json"  # {frame: {"key": str, "calls": {tool_use_id: {...}}}}
 BATCH_PREFIX = "B-"
-APPROVE_RE = re.compile(r"\bapprove (P-[0-9a-f]{8})\b")
+APPROVE_RE = re.compile(r"approve (P-[0-9a-f]{8})")  # fullmatch of the stripped prompt
+APPROVE_MENTION_RE = re.compile(r"\bapprove (P-[0-9a-f]{8})\b")
+REVOKE_RE = re.compile(r"revoke (wo:[A-Za-z0-9-]+\.v[0-9]+)")  # fullmatch of the stripped prompt
+REVOKE_MENTION_RE = re.compile(r"\brevoke (wo:[A-Za-z0-9-]+\.v[0-9]+)\b")
+BUILTIN_DENIED = "builtin_denied"  # event kind of a denied built-in, ref the host tool
 
 BUILTIN_DENY_TEXT = ("chr-gate: the built-in tool {tool} is disabled in this project; make changes "
                      "through the chr-gate MCP tools (write_file, edit_file, mutate_shell after "
@@ -66,8 +85,16 @@ FAIL_CLOSED_TEXT = "chr-gate: the hook failed ({error}); {tool} refused, fail cl
 ACTIVATED_TEXT = ("chr-gate: the user approved {plan}; work order {ref} is now active. Call "
                   "read_work_order (status) on the chr-gate server for its text and your witness.")
 UNKNOWN_PLAN_TEXT = "chr-gate: {plan} is not a proposed plan id; nothing was activated."
+NOT_EXACT_TEXT = ('chr-gate: your message mentions "approve {plan}" but is not exactly that '
+                  "phrase; nothing was activated. To approve, reply with exactly: approve {plan}")
+REVOKED_TEXT = ("chr-gate: the user revoked {ref}; no work order is active. Propose a new plan "
+                "with propose_plan.")
+REVOKE_NOT_ACTIVE_TEXT = ("chr-gate: {ref} is not the active work order ({active}); nothing was "
+                          "revoked.")
+REVOKE_NOT_EXACT_TEXT = ('chr-gate: your message mentions "revoke {ref}" but is not exactly that '
+                         "phrase; nothing was revoked. To revoke, reply with exactly: revoke {ref}")
 COMPACT_TEXT = ("chr-gate: your context was compacted, which ended your witness and any open gate. "
-                "Your active work order is {ref}:\n--- work order text ---\n{text}\n"
+                "Your active work order is {ref}:\n{section}\n"
                 "--- end of work order ---\nCall read_work_order (status) on the chr-gate server "
                 "for a new witness before open_gate.")
 SUBAGENT_TEXT = ("chr-gate: if your launch prompt carries a chr-gate delegation id (D-...), call "
@@ -90,15 +117,15 @@ class Event:
     host_tool: str | None = None   # the host's tool name
     tool_input: Any = None
     tool_use_id: str | None = None
-    builtin_write: bool = False
+    builtin_write: bool = False    # a host built-in off the adapter's read-only list
     text: str | None = None        # user prompt, or final assistant text at stop
     batch_key: str | None = None   # host batch key (Codex turn_id); None: hook-minted
     batch_tool_use_ids: tuple[str, ...] = ()
     batch_tools: tuple[str | None, ...] = ()
     reads_transcript: bool = False  # citations from transcript.py at pre_tool
-    writes_tickets: bool = False    # Claude Code: frame tickets for the server
+    writes_tickets: bool = False    # pre_tool: frame tickets for the server
     reports_turns: bool = False     # Claude Code: note_turn at batch_end
-    ends_batch: bool = False        # Codex stop/user_prompt backstop
+    ends_batch: bool = False        # stop/user_prompt batch_end backstop
 
     def __post_init__(self) -> None:
         if self.kind not in KINDS:
@@ -172,13 +199,20 @@ def _check_citations(store: Store, frame: str, text: str | None) -> None:
 # batches
 
 def _record_call(store: Store, event: Event) -> str:
-    """Add the call to the frame's open batch; returns the batch key."""
+    """Add the call to the frame's open batch; returns the batch key. A
+    differing open host batch key raises ValueError, because _pre_tool ends a
+    replaced batch first (_end_replaced_batch) and a Codex turn_id is per user
+    turn (docs/spike-findings.md:72)."""
     if not event.tool_use_id:
         raise ValueError("a tool event needs a tool_use_id")
     with store.lock():
         batches = store.read(BATCHES, {})
         batch = batches.get(event.frame)
-        if batch is None or (event.batch_key is not None and batch["key"] != event.batch_key):
+        if batch is not None and event.batch_key is not None and batch["key"] != event.batch_key:
+            raise ValueError(f"frame {event.frame!r} has open batch {batch['key']!r}; "
+                             f"_end_replaced_batch must end it before batch "
+                             f"{event.batch_key!r} records a call")
+        if batch is None:
             batch = batches[event.frame] = {
                 "key": event.batch_key or BATCH_PREFIX + secrets.token_hex(8), "calls": {}}
         batch["calls"][event.tool_use_id] = {"tool": event.tool,
@@ -203,18 +237,45 @@ def _end_batch(store: Store, event: Event) -> str:
         batch = batches.pop(frame, None)
         if batch is not None:
             store.write(BATCHES, batches)
+    _finish_batch(store, event, frame, batch, extra_ids=event.batch_tool_use_ids,
+                  extra_tools=event.batch_tools)
+    return frame
+
+
+def _end_replaced_batch(store: Store, event: Event) -> None:
+    """End the frame's open batch when the event carries a different host
+    batch key (a new Codex turn_id), the same way _end_batch ends one."""
+    if event.batch_key is None:
+        return
+    with store.lock():
+        batches = store.read(BATCHES, {})
+        batch = batches.get(event.frame)
+        if batch is None or batch["key"] == event.batch_key:
+            return
+        del batches[event.frame]
+        store.write(BATCHES, batches)
+    _finish_batch(store, event, event.frame, batch, extra_ids=(), extra_tools=())
+
+
+def _finish_batch(store: Store, event: Event, frame: str, batch: dict[str, Any] | None, *,
+                  extra_ids: tuple[str, ...], extra_tools: tuple[str | None, ...]) -> None:
+    """Drop the ended BATCH's tickets, then close the frame's gate or report
+    the turn. EXTRA_IDS and EXTRA_TOOLS are host call ids and tools of the
+    ended batch beyond its recorded calls (never the triggering event's own
+    batch fields unless that event ended this batch). Runs outside
+    store.lock(): every step here takes the lock."""
+    tickets.drop_tickets(store, [*extra_ids, *(batch["calls"] if batch is not None else ())])
     if batch is not None:
         key: str | None = batch["key"]
         consequential = any(c["consequential"] for c in batch["calls"].values())
     else:
         key = event.batch_key
         consequential = False
-    consequential = consequential or any(is_consequential(t) for t in event.batch_tools)
+    consequential = consequential or any(is_consequential(t) for t in extra_tools)
     if consequential or _gate_consumed(store, frame):
         gate.close_gate(store, frame)
     elif event.reports_turns and key is not None:
         gate.note_turn(store, frame, key)
-    return frame
 
 
 # handlers
@@ -232,12 +293,16 @@ def _early_refusal(store: Store, event: Event) -> str | None:
 
 def _pre_tool(store: Store, event: Event) -> Decision:
     if event.builtin_write:
+        with store.lock():
+            events.append(store, frame=event.frame, kind=BUILTIN_DENIED, outcome="denied",
+                          ref=event.host_tool)
         return Decision(deny=BUILTIN_DENY_TEXT.format(tool=event.host_tool))
     text = None
     if event.reads_transcript:
         if not event.transcript_path:
             raise ValueError("this host's pre_tool event needs a transcript_path")
         text = transcript.new_assistant_text(store, event.frame, event.transcript_path)
+    _end_replaced_batch(store, event)
     if is_consequential(event.tool):
         refusal = _early_refusal(store, event)
         if refusal is not None:
@@ -268,15 +333,35 @@ def _user_prompt(store: Store, event: Event) -> Decision:
     if event.ends_batch:
         _end_batch(store, event)
     parts = []
-    match = APPROVE_RE.search(event.text)
-    if match is not None:
-        plan = match.group(1)
-        try:
-            wo = workorder.activate(store, plan, event.text)
-        except workorder.UnknownPlan:
-            parts.append(UNKNOWN_PLAN_TEXT.format(plan=plan))
+    if event.agent_id is None:  # approval and revocation never come from a child frame
+        stripped = event.text.strip()
+        exact = APPROVE_RE.fullmatch(stripped)
+        revoke = REVOKE_RE.fullmatch(stripped)
+        if exact is not None:
+            plan = exact.group(1)
+            try:
+                wo = workorder.activate(store, plan, event.text)
+            except workorder.UnknownPlan:
+                parts.append(UNKNOWN_PLAN_TEXT.format(plan=plan))
+            else:
+                parts.append(ACTIVATED_TEXT.format(plan=plan, ref=wo.ref))
+        elif revoke is not None:
+            ref = revoke.group(1)
+            try:
+                workorder.revoke(store, ref, event.text)
+            except workorder.NotActive as e:
+                active = ("no work order is active" if e.active_ref is None
+                          else f"the active work order is {e.active_ref}")
+                parts.append(REVOKE_NOT_ACTIVE_TEXT.format(ref=ref, active=active))
+            else:
+                parts.append(REVOKED_TEXT.format(ref=ref))
         else:
-            parts.append(ACTIVATED_TEXT.format(plan=plan, ref=wo.ref))
+            mention = APPROVE_MENTION_RE.search(event.text)
+            if mention is not None:
+                parts.append(NOT_EXACT_TEXT.format(plan=mention.group(1)))
+            mention = REVOKE_MENTION_RE.search(event.text)
+            if mention is not None:
+                parts.append(REVOKE_NOT_EXACT_TEXT.format(ref=mention.group(1)))
     return _respond(store, event, event.frame, parts)
 
 
@@ -289,11 +374,13 @@ def _stop(store: Store, event: Event) -> Decision:
 
 def _compact(store: Store, event: Event) -> Decision:
     gate.new_epoch(store, event.frame)
+    nonces.clear(store, event.frame)  # also for a frame new_epoch does not know
     with store.lock():
         rec = store.read(workorder.FRAMES, {}).get(event.frame)
         wo = (workorder.governing_work_order(store, rec) if rec is not None
               else workorder.active(store))
-    parts = [] if wo is None else [COMPACT_TEXT.format(ref=wo.ref, text=wo.text)]
+        parts = [] if wo is None else [COMPACT_TEXT.format(
+            ref=wo.ref, section=delegation.work_order_section(store, wo.id, wo.text))]
     return _respond(store, event, event.frame, parts)
 
 

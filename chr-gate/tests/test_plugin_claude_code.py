@@ -15,13 +15,17 @@ import re
 import shlex
 from pathlib import Path
 
-from chrgate.hooks.adapters import SERVER_ENV, chr_gate_tool, claude_code
+from chrgate.hooks.adapters import SERVER_ENV, builtin_write, chr_gate_tool, claude_code
 from chrgate.server.tools import TOOLS
 
 PLUGIN = Path(__file__).resolve().parents[2] / "plugins" / "claude-code"
 PAYLOADS = Path(__file__).parent / "fixtures" / "payloads" / "claude_code"
 JSON_FILES = (".claude-plugin/plugin.json", ".claude-plugin/marketplace.json", ".mcp.json",
               "hooks/hooks.json", "settings/chr-gate-settings.json")
+INIT_STREAM = (Path(__file__).resolve().parents[1] / "docs" / "smoke-raw" / "claude-code"
+               / "streams" / "1-propose.stream.jsonl")
+# the deny list this package shipped before F2; the adapter must still deny each
+ORIGINAL_DENY = ("Bash", "Write", "Edit", "MultiEdit", "NotebookEdit")
 HOOK_ARGV = ["chrgate-hook", "--host", claude_code.HOST]
 ASSIGNMENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 
@@ -103,9 +107,21 @@ def test_server_name_matches_hook_tool_prefix(monkeypatch):
         assert chr_gate_tool(f"mcp__{server_name()}__{tool.name}") is None
 
 
+def init_tools():
+    """The tools list of the recorded Claude Code system init record."""
+    for line in INIT_STREAM.read_text().splitlines():
+        record = json.loads(line)
+        if record.get("type") == "system" and record.get("subtype") == "init":
+            return record["tools"]
+    raise AssertionError(f"no system init record in {INIT_STREAM}")
+
+
 def test_settings_deny_covers_adapter_builtin_writes():
     deny = set(load("settings/chr-gate-settings.json")["permissions"]["deny"])
-    assert claude_code.BUILTIN_WRITES <= deny
+    expected = {tool for tool in (*init_tools(), *ORIGINAL_DENY)
+                if builtin_write(tool, claude_code.READ_ONLY_BUILTINS)}
+    assert set(ORIGINAL_DENY) <= expected
+    assert expected <= deny, sorted(expected - deny)
 
 
 def test_skill_names_every_registry_tool_and_setup():

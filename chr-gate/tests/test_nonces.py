@@ -2,6 +2,7 @@ import hashlib
 import re
 
 from chrgate.core import gate, nonces
+from chrgate.hooks import engine
 
 FRAME = "session-A"
 OTHER = "agent-B"
@@ -42,3 +43,14 @@ def test_plaintext_nonce_absent_from_disk(store, isolated_env):
         registry = store.read(nonces.NONCES, None)
     assert registry[FRAME]["sha256"] == [hashlib.sha256(n.encode()).hexdigest()
                                          for n in issued[:3]]
+
+
+def test_compaction_clears_nonces_of_unregistered_frame(store):
+    n = nonces.issue(store, FRAME)
+    assert _current(store, FRAME, n)
+    engine.handle(store, engine.Event(kind=engine.COMPACT, host="claude-code",
+                                      hook_event="SessionStart", frame=FRAME, session_id=FRAME,
+                                      accepts_context=True))
+    assert not _current(store, FRAME, n)
+    with store.lock():
+        assert FRAME not in store.read(nonces.NONCES, {})

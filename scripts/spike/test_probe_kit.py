@@ -7,13 +7,17 @@ Run: PYTHONDONTWRITEBYTECODE=1 uv run --no-project --with pytest --with 'mcp>=2.
 import json
 import os
 import queue
+import re
 import subprocess
 import sys
 import threading
+import tomllib
 from pathlib import Path
 
 KIT = Path(__file__).resolve().parent
 TIMEOUT = 30
+CONFIGS = ("claude/settings.json", "claude/mcp.json", "codex/probe.toml")
+TOKEN = re.compile(r"@[A-Z_]+@")
 
 
 def _env(out_dir: Path) -> dict:
@@ -165,3 +169,62 @@ def test_probe_hook_never_stores_transcript_text(tmp_path):
     assert "SECRET-TRANSCRIPT-LINE" not in summary_text and "user@example.invalid" not in summary_text
     assert _read_jsonl(tmp_path / "transcripts-summary.jsonl") == [{"labels": ["privacy"], **expected}]
     assert not (tmp_path / "transcripts").exists()
+
+
+def _render(kit: str, uv: str, src: Path, dest: Path) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(KIT / "render_kit_config.py"), "--kit", kit, "--uv", uv, str(src), str(dest)],
+        capture_output=True,
+        timeout=TIMEOUT,
+    )
+
+
+def test_kit_configs_are_templates():
+    for name in CONFIGS:
+        text = (KIT / name).read_text(encoding="utf-8")
+        assert "@KIT@" in text, name
+        assert "/home/" not in text, name
+
+
+def test_render_kit_config_resolves_templates(tmp_path):
+    kit = tmp_path / "kit"
+    rendered = {}
+    for name in CONFIGS:
+        dest = tmp_path / name.replace("/", "-")
+        result = _render(str(kit), "/opt/bin/uv", KIT / name, dest)
+        assert result.returncode == 0, result.stderr.decode()
+        rendered[name] = dest.read_text(encoding="utf-8")
+        assert not TOKEN.search(rendered[name]), name
+
+    settings = json.loads(rendered["claude/settings.json"])
+    commands = [hook["command"] for groups in settings["hooks"].values() for group in groups for hook in group["hooks"]]
+    assert commands and all(f"{kit}/probe_hook.py" in command for command in commands)
+    assert json.loads(rendered["claude/mcp.json"])["mcpServers"]["probe"]["command"] == "/opt/bin/uv"
+    tomllib.loads(rendered["codex/probe.toml"])
+
+
+def test_render_kit_config_refuses_unsafe_paths(tmp_path):
+    for label, kit in (("space", str(tmp_path / "my kit")), ("relative", "scripts/spike")):
+        dest = tmp_path / f"{label}.json"
+        result = _render(kit, "/opt/bin/uv", KIT / "claude/mcp.json", dest)
+        assert result.returncode == 2, (label, result.stderr.decode())
+        assert not dest.exists(), label
+
+
+def test_runners_use_rendered_configs():
+    def render_lines(text: str) -> list[str]:
+        return [line.strip() for line in text.splitlines()
+                if "render_kit_config.py" in line and not line.lstrip().startswith("#")]
+
+    claude = (KIT / "run_claude_probe.sh").read_text(encoding="utf-8")
+    claude_renders = render_lines(claude)
+    assert any(line.endswith('"$OUT/claude-settings.json"') for line in claude_renders)
+    assert any(line.endswith('"$OUT/claude-mcp.json"') for line in claude_renders)
+    host_args = re.findall(r'--(?:settings|mcp-config)\s+(\S+)', claude)
+    assert host_args == ['"$OUT/claude-settings.json"', '"$OUT/claude-mcp.json"']
+    assert not any("$KIT" in arg for arg in host_args)
+
+    codex = (KIT / "run_codex_probe.sh").read_text(encoding="utf-8")
+    assert any(line.endswith('"$OUT/probe.toml"') for line in render_lines(codex))
+    assert 'overrides "$OUT/probe.toml"' in codex
+    assert 'overrides "$KIT/codex/probe.toml"' not in codex

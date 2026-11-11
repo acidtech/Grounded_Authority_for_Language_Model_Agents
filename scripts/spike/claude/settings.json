@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event PreToolUse",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 @KIT@/probe_hook.py --host claude --event PreToolUse",
             "timeout": 30
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event PostToolUse",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 @KIT@/probe_hook.py --host claude --event PostToolUse",
             "timeout": 30
           }
         ]
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event PostToolBatch",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 @KIT@/probe_hook.py --host claude --event PostToolBatch",
             "timeout": 30
           }
         ]
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event UserPromptSubmit",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 @KIT@/probe_hook.py --host claude --event UserPromptSubmit",
             "timeout": 30
           }
         ]
@@ -49,7 +49,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event Stop",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 @KIT@/probe_hook.py --host claude --event Stop",
             "timeout": 30
           }
         ]
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event SubagentStart",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 @KIT@/probe_hook.py --host claude --event SubagentStart",
             "timeout": 30
           }
         ]
@@ -71,7 +71,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event SubagentStop",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 @KIT@/probe_hook.py --host claude --event SubagentStop",
             "timeout": 30
           }
         ]
@@ -82,7 +82,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event PreCompact",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 @KIT@/probe_hook.py --host claude --event PreCompact",
             "timeout": 30
           }
         ]
@@ -93,7 +93,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event PostCompact",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 @KIT@/probe_hook.py --host claude --event PostCompact",
             "timeout": 30
           }
         ]
@@ -104,7 +104,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 /home/acidtech/Ground_Authority_for_Language_Model_Agents/scripts/spike/probe_hook.py --host claude --event SessionStart",
+            "command": "CHR_SPIKE_OUT=/tmp/chr-gate-spike/claude PYTHONDONTWRITEBYTECODE=1 python3 @KIT@/probe_hook.py --host claude --event SessionStart",
             "timeout": 30
           }
         ]

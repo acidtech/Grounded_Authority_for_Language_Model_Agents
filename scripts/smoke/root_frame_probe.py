@@ -1,4 +1,4 @@
-"""Root frame probe (debt dcb46a): does the MCP server env match the hook session?
+"""Root frame probe: does the MCP server env match the hook session?
 
 chr-gate's tickets.root_frame() reads CLAUDE_CODE_SESSION_ID from the MCP
 server's environment; the Claude Code hooks see the payload session_id. This

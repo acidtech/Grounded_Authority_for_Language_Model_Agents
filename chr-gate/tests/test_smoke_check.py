@@ -104,6 +104,17 @@ def test_each_failure_fails_exactly_its_step(tmp_path, monkeypatch, capsys, step
     assert {name for name, verdict in results.items() if verdict == "FAIL"} == {NAMES[step]}, out
 
 
+def test_revoked_work_order_fails_activation(tmp_path, monkeypatch, capsys):
+    state, project, store = session(tmp_path, monkeypatch)
+    ref = smoke_check.load(state, project).ref
+    workorder.revoke(store, ref, "revoke " + ref)
+    rc, results, out = check(capsys, state, project)
+    assert rc != 0, out
+    assert {name for name, verdict in results.items() if verdict == "FAIL"} == {NAMES[1], NAMES[3]}, out
+    step2 = next(line for line in out.splitlines() if line.startswith("2. "))
+    assert "revoked" in step2, out
+
+
 def test_info_lines_never_change_the_exit_code(tmp_path, monkeypatch, capsys):
     state, project, store = session(tmp_path, monkeypatch)
     with store.lock():
@@ -159,3 +170,26 @@ def test_info_lines_none_line_names_all_three_codes(tmp_path):
     lines = info(tmp_path, [INFO_EVENTS[0], INFO_EVENTS[3]])
     assert lines[0] == "INFO: no refused-claude-no-ticket, refused-not-mediated or hook_error events"
     assert not any("refused or failed hook event" in line for line in lines)
+
+
+def test_info_lists_builtin_denials(tmp_path, monkeypatch, capsys):
+    state, project, store = session(tmp_path, monkeypatch)
+
+    def result_line(out):
+        return [line for line in out.splitlines() if line.startswith("RESULT:")]
+
+    def denial_lines(out):
+        return [line for line in out.splitlines()
+                if line.startswith("INFO") and "builtin_denied" in line]
+
+    rc_without, _, without = check(capsys, state, project)
+    assert denial_lines(without) == [], without
+    with store.lock():
+        for tool in ("CronCreate", "Write"):
+            events.append(store, frame=FRAME, kind="builtin_denied", outcome="denied", ref=tool)
+    rc_with, _, out = check(capsys, state, project)
+    assert rc_with == rc_without and result_line(out) == result_line(without), out
+    denials = denial_lines(out)
+    assert len(denials) == 2, out
+    assert "CronCreate" in denials[0] and FRAME in denials[0], out
+    assert "Write" in denials[1] and FRAME in denials[1], out
